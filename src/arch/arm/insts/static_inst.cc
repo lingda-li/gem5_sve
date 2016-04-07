@@ -292,23 +292,21 @@ ArmStaticInst::shift_carry_rs(uint32_t base, uint32_t shamt,
 
 
 void
-ArmStaticInst::printReg(std::ostream &os, int reg) const
+ArmStaticInst::printReg(std::ostream &os, RegId reg) const
 {
-    RegIndex rel_reg;
-
-    switch (regIdxToClass(reg, &rel_reg)) {
+    switch (reg.regClass) {
       case IntRegClass:
         if (aarch64) {
-            if (reg == INTREG_UREG0)
+            if (reg.regIdx == INTREG_UREG0)
                 ccprintf(os, "ureg0");
-            else if (reg == INTREG_SPX)
+            else if (reg.regIdx == INTREG_SPX)
                ccprintf(os, "%s%s", (intWidth == 32) ? "w" : "", "sp");
-            else if (reg == INTREG_X31)
+            else if (reg.regIdx == INTREG_X31)
                 ccprintf(os, "%szr", (intWidth == 32) ? "w" : "x");
             else
-                ccprintf(os, "%s%d", (intWidth == 32) ? "w" : "x", reg);
+                ccprintf(os, "%s%d", (intWidth == 32) ? "w" : "x", reg.regIdx);
         } else {
-            switch (rel_reg) {
+            switch (reg.regIdx) {
               case PCReg:
                 ccprintf(os, "pc");
                 break;
@@ -322,20 +320,20 @@ ArmStaticInst::printReg(std::ostream &os, int reg) const
                 ccprintf(os, "lr");
                 break;
               default:
-                ccprintf(os, "r%d", reg);
+                ccprintf(os, "r%d", reg.regIdx);
                 break;
             }
         }
         break;
       case FloatRegClass:
-        ccprintf(os, "f%d", rel_reg);
+        ccprintf(os, "f%d", reg.regIdx);
         break;
       case MiscRegClass:
-        assert(rel_reg < NUM_MISCREGS);
-        ccprintf(os, "%s", ArmISA::miscRegName[rel_reg]);
+        assert(reg.regIdx < NUM_MISCREGS);
+        ccprintf(os, "%s", ArmISA::miscRegName[reg.regIdx]);
         break;
       case CCRegClass:
-        ccprintf(os, "cc_%s", ArmISA::ccRegName[rel_reg]);
+        ccprintf(os, "cc_%s", ArmISA::ccRegName[reg.regIdx]);
         break;
     }
 }
@@ -470,7 +468,7 @@ ArmStaticInst::printShiftOperand(std::ostream &os,
     bool firstOp = false;
 
     if (rm != INTREG_ZERO) {
-        printReg(os, rm);
+        printReg(os, RegId(IntRegClass, rm));
     }
 
     bool done = false;
@@ -519,7 +517,7 @@ ArmStaticInst::printShiftOperand(std::ostream &os,
         if (immShift)
             os << "#" << shiftAmt;
         else
-            printReg(os, rs);
+            printReg(os, RegId(IntRegClass, rs));
     }
 }
 
@@ -530,7 +528,7 @@ ArmStaticInst::printExtendOperand(bool firstOperand, std::ostream &os,
 {
     if (!firstOperand)
         ccprintf(os, ", ");
-    printReg(os, rm);
+    printReg(os, RegId(IntRegClass, rm));
     if (type == UXTX && shiftAmt == 0)
         return;
     switch (type) {
@@ -567,7 +565,7 @@ ArmStaticInst::printDataInst(std::ostream &os, bool withImm,
     // Destination
     if (rd != INTREG_ZERO) {
         firstOp = false;
-        printReg(os, rd);
+        printReg(os, RegId(IntRegClass, rd));
     }
 
     // Source 1.
@@ -575,7 +573,7 @@ ArmStaticInst::printDataInst(std::ostream &os, bool withImm,
         if (!firstOp)
             os << ", ";
         firstOp = false;
-        printReg(os, rn);
+        printReg(os, RegId(IntRegClass, rn));
     }
 
     if (!firstOp)

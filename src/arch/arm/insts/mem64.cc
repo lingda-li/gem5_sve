@@ -53,7 +53,7 @@ SysDC64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     std::stringstream ss;
     printMnemonic(ss, "", false);
     ccprintf(ss, ", [");
-    printReg(ss, base);
+    printReg(ss, RegId(IntRegClass, base));
     ccprintf(ss, "]");
     return ss.str();
 }
@@ -64,9 +64,9 @@ void
 Memory64::startDisassembly(std::ostream &os) const
 {
     printMnemonic(os, "", false);
-    printReg(os, dest);
+    printReg(os, RegId(IntRegClass, dest));
     ccprintf(os, ", [");
-    printReg(os, base);
+    printReg(os, RegId(IntRegClass, base));
 }
 
 void
@@ -99,11 +99,11 @@ MemoryDImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", ");
-    printReg(ss, dest2);
+    printReg(ss, RegId(IntRegClass, dest2));
     ccprintf(ss, ", [");
-    printReg(ss, base);
+    printReg(ss, RegId(IntRegClass, base));
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
@@ -115,13 +115,13 @@ MemoryDImmEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printReg(ss, result);
+    printReg(ss, RegId(IntRegClass, result));
     ccprintf(ss, ", ");
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", ");
-    printReg(ss, dest2);
+    printReg(ss, RegId(IntRegClass, dest2));
     ccprintf(ss, ", [");
-    printReg(ss, base);
+    printReg(ss, RegId(IntRegClass, base));
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
@@ -172,11 +172,11 @@ MemoryEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", ");
-    printReg(ss, result);
+    printReg(ss, RegId(IntRegClass, result));
     ccprintf(ss, ", [");
-    printReg(ss, base);
+    printReg(ss, RegId(IntRegClass, base));
     ccprintf(ss, "]");
     return ss.str();
 }
@@ -186,7 +186,7 @@ MemoryLiteral64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", #%d", pc + imm);
     return ss.str();
 }

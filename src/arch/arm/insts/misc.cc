@@ -46,21 +46,20 @@ MrsOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
     bool foundPsr = false;
     for (unsigned i = 0; i < numSrcRegs(); i++) {
-        RegIndex idx = srcRegIdx(i);
-        RegIndex rel_idx;
-        if (regIdxToClass(idx, &rel_idx) != MiscRegClass) {
+        RegId reg = srcRegIdx(i);
+        if (reg.regClass != MiscRegClass) {
             continue;
         }
-        if (rel_idx == MISCREG_CPSR) {
+        if (reg.regIdx == MISCREG_CPSR) {
             ss << "cpsr";
             foundPsr = true;
             break;
         }
-        if (rel_idx == MISCREG_SPSR) {
+        if (reg.regIdx == MISCREG_SPSR) {
             ss << "spsr";
             foundPsr = true;
             break;
@@ -79,17 +78,16 @@ MsrBase::printMsrBase(std::ostream &os) const
     bool apsr = false;
     bool foundPsr = false;
     for (unsigned i = 0; i < numDestRegs(); i++) {
-        int idx = destRegIdx(i);
-        if (idx < Misc_Reg_Base) {
+        RegId reg = destRegIdx(i);
+        if (reg.regClass != MiscRegClass) {
             continue;
         }
-        idx -= Misc_Reg_Base;
-        if (idx == MISCREG_CPSR) {
+        if (reg.regIdx == MISCREG_CPSR) {
             os << "cpsr_";
             foundPsr = true;
             break;
         }
-        if (idx == MISCREG_SPSR) {
+        if (reg.regIdx == MISCREG_SPSR) {
             if (bits(byteMask, 1, 0)) {
                 os << "spsr_";
             } else {
@@ -141,7 +139,7 @@ MsrRegOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     std::stringstream ss;
     printMsrBase(ss);
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     return ss.str();
 }
 
@@ -150,11 +148,11 @@ MrrcOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, dest2);
+    printReg(ss, RegId(IntRegClass, dest2));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     return ss.str();
 }
 
@@ -163,11 +161,11 @@ McrrOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ss << ", ";
-    printReg(ss, op2);
+    printReg(ss, RegId(IntRegClass, op2));
     return ss.str();
 }
 
@@ -185,7 +183,7 @@ RegImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", #%d", imm);
     return ss.str();
 }
@@ -195,9 +193,9 @@ RegRegOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     return ss.str();
 }
 
@@ -206,11 +204,11 @@ RegRegRegImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ss << ", ";
-    printReg(ss, op2);
+    printReg(ss, RegId(IntRegClass, op2));
     ccprintf(ss, ", #%d", imm);
     return ss.str();
 }
@@ -220,13 +218,13 @@ RegRegRegRegOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ss << ", ";
-    printReg(ss, op2);
+    printReg(ss, RegId(IntRegClass, op2));
     ss << ", ";
-    printReg(ss, op3);
+    printReg(ss, RegId(IntRegClass, op3));
     return ss.str();
 }
 
@@ -235,11 +233,11 @@ RegRegRegOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ss << ", ";
-    printReg(ss, op2);
+    printReg(ss, RegId(IntRegClass, op2));
     return ss.str();
 }
 
@@ -248,9 +246,9 @@ RegRegImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ccprintf(ss, ", #%d", imm);
     return ss.str();
 }
@@ -260,9 +258,9 @@ MiscRegRegImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ccprintf(ss, ", #%d", imm);
     return ss.str();
 }
@@ -272,9 +270,9 @@ RegMiscRegImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ccprintf(ss, ", #%d", imm);
     return ss.str();
 }
@@ -284,7 +282,7 @@ RegImmImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", #%d, #%d", imm1, imm2);
     return ss.str();
 }
@@ -294,9 +292,9 @@ RegRegImmImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ", ";
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     ccprintf(ss, ", #%d, #%d", imm1, imm2);
     return ss.str();
 }
@@ -306,9 +304,9 @@ RegImmRegOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", #%d, ", imm);
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     return ss.str();
 }
 
@@ -317,10 +315,10 @@ RegImmRegShiftOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ccprintf(ss, ", #%d, ", imm);
     printShiftOperand(ss, op1, true, shiftAmt, INTREG_ZERO, shiftType);
-    printReg(ss, op1);
+    printReg(ss, RegId(IntRegClass, op1));
     return ss.str();
 }
 

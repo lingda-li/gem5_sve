@@ -47,28 +47,27 @@ namespace Minor
 {
 
 bool
-Scoreboard::findIndex(RegIndex reg, Index &scoreboard_index)
+Scoreboard::findIndex(RegId reg, Index &scoreboard_index)
 {
-    RegClass reg_class = regIdxToClass(reg);
     bool ret = false;
 
-    if (reg == TheISA::ZeroReg) {
+    if (reg.isZeroReg()) {
         /* Don't bother with the zero register */
         ret = false;
     } else {
-        switch (reg_class)
+        switch (reg.regClass)
         {
           case IntRegClass:
-            scoreboard_index = reg;
+            scoreboard_index = reg.regIdx;
             ret = true;
             break;
           case FloatRegClass:
             scoreboard_index = TheISA::NumIntRegs + TheISA::NumCCRegs +
-                reg - TheISA::FP_Reg_Base;
+                reg.regIdx;
             ret = true;
             break;
           case CCRegClass:
-            scoreboard_index = TheISA::NumIntRegs + reg - TheISA::FP_Reg_Base;
+            scoreboard_index = TheISA::NumIntRegs + reg.regIdx;
             ret = true;
             break;
           case MiscRegClass:
@@ -81,32 +80,28 @@ Scoreboard::findIndex(RegIndex reg, Index &scoreboard_index)
     return ret;
 }
 
-/** Flatten a RegIndex, irrespective of what reg type it's pointing to */
-static TheISA::RegIndex
-flattenRegIndex(TheISA::RegIndex reg, ThreadContext *thread_context)
+/** Flatten a RegId, irrespective of what reg type it's pointing to */
+static RegId
+flattenRegIndex(RegId reg, ThreadContext *thread_context)
 {
-    RegClass reg_class = regIdxToClass(reg);
-    TheISA::RegIndex ret = reg;
-
-    switch (reg_class)
+    switch (reg.regClass)
     {
       case IntRegClass:
-        ret = thread_context->flattenIntIndex(reg);
+        reg.regIdx = thread_context->flattenIntIndex(reg.regIdx);
         break;
       case FloatRegClass:
-        ret = thread_context->flattenFloatIndex(reg);
+        reg.regIdx = thread_context->flattenFloatIndex(reg.regIdx);
         break;
       case CCRegClass:
-        ret = thread_context->flattenCCIndex(reg);
+        reg.regIdx = thread_context->flattenCCIndex(reg.regIdx);
         break;
       case MiscRegClass:
         /* Don't bother to flatten misc regs as we don't need them here */
         /* return thread_context->flattenMiscIndex(reg); */
-        ret = reg;
         break;
     }
 
-    return ret;
+    return reg;
 }
 
 void
@@ -123,8 +118,8 @@ Scoreboard::markupInstDests(MinorDynInstPtr inst, Cycles retire_time,
     for (unsigned int dest_index = 0; dest_index < num_dests;
         dest_index++)
     {
-        RegIndex reg = flattenRegIndex(
-            staticInst->destRegIdx(dest_index), thread_context);
+        RegId reg = flattenRegIndex(
+                staticInst->destRegIdx(dest_index), thread_context);
         Index index;
 
         if (findIndex(reg, index)) {
@@ -147,7 +142,7 @@ Scoreboard::markupInstDests(MinorDynInstPtr inst, Cycles retire_time,
                 *inst, index, numResults[index], returnCycle[index]);
         } else {
             /* Use ZeroReg to mark invalid/untracked dests */
-            inst->flatDestRegIdx[dest_index] = TheISA::ZeroReg;
+            inst->flatDestRegIdx[dest_index] = RegId::zeroReg;
         }
     }
 }
@@ -165,7 +160,7 @@ Scoreboard::execSeqNumToWaitFor(MinorDynInstPtr inst,
     unsigned int num_srcs = staticInst->numSrcRegs();
 
     for (unsigned int src_index = 0; src_index < num_srcs; src_index++) {
-        RegIndex reg = flattenRegIndex(staticInst->srcRegIdx(src_index),
+        RegId reg = flattenRegIndex(staticInst->srcRegIdx(src_index),
             thread_context);
         unsigned short int index;
 
@@ -194,7 +189,7 @@ Scoreboard::clearInstDests(MinorDynInstPtr inst, bool clear_unpredictable)
     for (unsigned int dest_index = 0; dest_index < num_dests;
         dest_index++)
     {
-        RegIndex reg = inst->flatDestRegIdx[dest_index];
+        RegId reg = inst->flatDestRegIdx[dest_index];
         Index index;
 
         if (findIndex(reg, index)) {
@@ -251,7 +246,7 @@ Scoreboard::canInstIssue(MinorDynInstPtr inst,
     while (src_index < num_srcs && /* More registers */
         ret /* Still possible */)
     {
-        RegIndex reg = flattenRegIndex(staticInst->srcRegIdx(src_index),
+        RegId reg = flattenRegIndex(staticInst->srcRegIdx(src_index),
             thread_context);
         unsigned short int index;
 

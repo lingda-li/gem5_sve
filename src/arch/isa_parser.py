@@ -530,16 +530,18 @@ class IntRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
+        reg_class = 'IntRegClass'
 
         if self.is_src:
-            c_src = '\n\t_srcRegIdx[_numSrcRegs++] = %s;' % (self.reg_spec)
+            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
+                     (reg_class, self.reg_spec))
             if self.hasReadPred():
                 c_src = '\n\tif (%s) {%s\n\t}' % \
                         (self.read_predicate, c_src)
 
         if self.is_dest:
-            c_dest = '\n\t_destRegIdx[_numDestRegs++] = %s;' % \
-                    (self.reg_spec)
+            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
+                      (reg_class, self.reg_spec))
             c_dest += '\n\t_numIntDestRegs++;'
             if self.hasWritePred():
                 c_dest = '\n\tif (%s) {%s\n\t}' % \
@@ -601,15 +603,15 @@ class FloatRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
+        reg_class = 'FloatRegClass'
 
         if self.is_src:
-            c_src = '\n\t_srcRegIdx[_numSrcRegs++] = %s + FP_Reg_Base;' % \
-                    (self.reg_spec)
+            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
+                    (reg_class, self.reg_spec))
 
         if self.is_dest:
-            c_dest = \
-              '\n\t_destRegIdx[_numDestRegs++] = %s + FP_Reg_Base;' % \
-              (self.reg_spec)
+            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
+                      (reg_class, self.reg_spec))
             c_dest += '\n\t_numFPDestRegs++;'
 
         return c_src + c_dest
@@ -663,18 +665,18 @@ class CCRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
+        reg_class = 'CCRegClass'
 
         if self.is_src:
-            c_src = '\n\t_srcRegIdx[_numSrcRegs++] = %s + CC_Reg_Base;' % \
-                     (self.reg_spec)
+            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
+                     (reg_class, self.reg_spec))
             if self.hasReadPred():
                 c_src = '\n\tif (%s) {%s\n\t}' % \
                         (self.read_predicate, c_src)
 
         if self.is_dest:
-            c_dest = \
-              '\n\t_destRegIdx[_numDestRegs++] = %s + CC_Reg_Base;' % \
-              (self.reg_spec)
+            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
+                      (reg_class, self.reg_spec))
             c_dest += '\n\t_numCCDestRegs++;'
             if self.hasWritePred():
                 c_dest = '\n\tif (%s) {%s\n\t}' % \
@@ -736,16 +738,15 @@ class ControlRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
+        reg_class = 'MiscRegClass'
 
         if self.is_src:
-            c_src = \
-              '\n\t_srcRegIdx[_numSrcRegs++] = %s + Misc_Reg_Base;' % \
-              (self.reg_spec)
+            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
+                     (reg_class, self.reg_spec))
 
         if self.is_dest:
-            c_dest = \
-              '\n\t_destRegIdx[_numDestRegs++] = %s + Misc_Reg_Base;' % \
-              (self.reg_spec)
+            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
+                      (reg_class, self.reg_spec))
 
         return c_src + c_dest
 

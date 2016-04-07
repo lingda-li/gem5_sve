@@ -1525,9 +1525,9 @@ MicroIntImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, ura);
+    printReg(ss, RegId(IntRegClass, ura));
     ss << ", ";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     ss << ", ";
     ccprintf(ss, "#%d", imm);
     return ss.str();
@@ -1538,9 +1538,9 @@ MicroIntImmXOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, ura);
+    printReg(ss, RegId(IntRegClass, ura));
     ss << ", ";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     ss << ", ";
     ccprintf(ss, "#%d", imm);
     return ss.str();
@@ -1560,9 +1560,9 @@ MicroIntRegXOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, ura);
+    printReg(ss, RegId(IntRegClass, ura));
     ccprintf(ss, ", ");
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     printExtendOperand(false, ss, (IntRegIndex)urc, type, shiftAmt);
     return ss.str();
 }
@@ -1572,9 +1572,9 @@ MicroIntMov::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, ura);
+    printReg(ss, RegId(IntRegClass, ura));
     ss << ", ";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     return ss.str();
 }
 
@@ -1583,11 +1583,11 @@ MicroIntOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, ura);
+    printReg(ss, RegId(IntRegClass, ura));
     ss << ", ";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     ss << ", ";
-    printReg(ss, urc);
+    printReg(ss, RegId(IntRegClass, urc));
     return ss.str();
 }
 
@@ -1597,11 +1597,11 @@ MicroMemOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     std::stringstream ss;
     printMnemonic(ss);
     if (isFloating())
-        printReg(ss, ura + FP_Reg_Base);
+        printReg(ss, RegId(FloatRegClass, ura));
     else
-        printReg(ss, ura);
+        printReg(ss, RegId(IntRegClass, ura));
     ss << ", [";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     ss << ", ";
     ccprintf(ss, "#%d", imm);
     ss << "]";
@@ -1613,11 +1613,11 @@ MicroMemPairOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss);
-    printReg(ss, dest);
+    printReg(ss, RegId(IntRegClass, dest));
     ss << ",";
-    printReg(ss, dest2);
+    printReg(ss, RegId(IntRegClass, dest2));
     ss << ", [";
-    printReg(ss, urb);
+    printReg(ss, RegId(IntRegClass, urb));
     ss << ", ";
     ccprintf(ss, "#%d", imm);
     ss << "]";
