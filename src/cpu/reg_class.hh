@@ -46,12 +46,13 @@
 
 #include <cassert>
 #include <cstddef>
+#include <iostream>
 
 #include "arch/generic/types.hh"
 #include "arch/registers.hh"
 #include "config/the_isa.hh"
 
-/// Enumerate the classes of registers.
+/** Enumerate the classes of registers. */
 enum RegClass {
     IntRegClass,        ///< Integer register
     FloatRegClass,      ///< Floating-point register
@@ -59,33 +60,54 @@ enum RegClass {
     MiscRegClass        ///< Control (misc) register
 };
 
-/// Number of register classes.  This value is not part of the enum,
-/// because putting it there makes the compiler complain about
-/// unhandled cases in some switch statements.
+/** Number of register classes.
+ * This value is not part of the enum, because putting it there makes the
+ * compiler complain about unhandled cases in some switch statements.
+ */
 const int NumRegClasses = MiscRegClass + 1;
 
-/// Register ID: describe an architectural register with its class and index.
-/// This structure is used instead of just the register index to disambiguate
-/// between different classes of registers.
-/// For example, a integer register with index 3 is represented by
-/// Regid(IntRegClass, 3).
-struct RegId {
+/** Register ID: describe an architectural register with its class and index.
+ * This structure is used instead of just the register index to disambiguate
+ * between different classes of registers. For example, a integer register with
+ * index 3 is represented by Regid(IntRegClass, 3).
+ */
+class RegId {
+  private:
+    static const char* regClassStrings[];
     RegClass regClass;
     RegIndex regIdx;
+  public:
     RegId() {};
     RegId(RegClass reg_class, RegIndex reg_idx) {
         regClass = reg_class;
         regIdx = reg_idx;
     }
+
     bool operator==(const RegId& that) const {
-        return regClass == that.regClass && regIdx == that.regIdx;
+        return regClass == that.classValue() && regIdx == that.index();
     }
+
     bool operator!=(const RegId& that) const {
         return !operator==(that);
     }
+
+    /** Order operator.
+     * The order is required to implement maps with key type RegId
+     */
+    bool operator<(const RegId& that) const {
+        return regClass < that.classValue() ||
+                (regClass == that.classValue() && regIdx < that.index());
+    }
+
     /**
+     * Return true if this register can be renamed
+     */
+    bool isRenameable() const { return regClass != MiscRegClass; }
+
+    /**
+     * Check if this is the zero register.
      * Returns true if this register is a zero register (needs to have a
-     * constant zero value throughout the execution)
+     * constant zero value throughout the execution).
      */
     bool isZeroReg() const
     {
@@ -93,17 +115,32 @@ struct RegId {
                 (THE_ISA == ALPHA_ISA && regClass == FloatRegClass &&
                  regIdx == TheISA::ZeroReg));
     }
-    /**
-     * Return true if this register can be renamed
-     */
-    bool isRenameable()
-    {
-        return regClass != MiscRegClass;
+
+    /** @return true if it is an integer physical register. */
+    bool isIntReg() const { return regClass == IntRegClass; }
+
+    /** @return true if it is a floating-point physical register. */
+    bool isFloatReg() const { return regClass == FloatRegClass; }
+
+    /** @Return true if it is a  condition-code physical register. */
+    bool isCCReg() const { return regClass == CCRegClass; }
+
+    /** @Return true if it is a  condition-code physical register. */
+    bool isMiscReg() const { return regClass == MiscRegClass; }
+
+    /** Index accessors */
+    /** @{ */
+    const RegIndex& index() const { return regIdx; }
+    RegIndex& index() { return regIdx; }
+    /** @} */
+    /** Class accessor */
+    const RegClass& classValue() const { return regClass; }
+    /** Return a const char* with the register class name. */
+    const char* className() const { return regClassStrings[regClass]; }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const RegId& rid) {
+        return os << rid.className() << "{" << rid.index() << "}";
     }
-
-    static const RegId zeroReg;
 };
-
-/// Map enum values to strings for debugging
-extern const char *RegClassStrings[];
 #endif // __CPU__REG_CLASS_HH__

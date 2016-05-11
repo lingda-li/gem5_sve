@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012, 2014-2015 ARM Limited
+ * Copyright (c) 2010-2012, 2014-2016 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -985,8 +985,8 @@ DefaultRename<Impl>::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
 
         DPRINTF(Rename, "[tid:%u]: Freeing up older rename of reg %i (%s), "
                 "[sn:%lli].\n",
-                tid, hb_it->prevPhysReg->regIdx,
-                RegClassStrings[hb_it->prevPhysReg->regClass],
+                tid, hb_it->prevPhysReg->index(),
+                hb_it->prevPhysReg->className(),
                 hb_it->instSeqNum);
 
         // Don't free special phys regs like misc and zero regs, which
@@ -1013,59 +1013,57 @@ DefaultRename<Impl>::renameSrcRegs(DynInstPtr &inst, ThreadID tid)
     // Get the architectual register numbers from the source and
     // operands, and redirect them to the right physical register.
     for (int src_idx = 0; src_idx < num_src_regs; src_idx++) {
-        RegId src_reg = inst->srcRegIdx(src_idx);
-        RegIndex flat_src_reg;
+        const RegId& src_reg = inst->srcRegIdx(src_idx);
         PhysRegIdPtr renamed_reg;
 
-        switch (src_reg.regClass) {
+        switch (src_reg.classValue()) {
           case IntRegClass:
-            flat_src_reg = tc->flattenIntIndex(src_reg.regIdx);
-            renamed_reg = map->lookupInt(flat_src_reg);
+            renamed_reg = map->lookupInt(RegId(IntRegClass,
+                        tc->flattenIntIndex(src_reg.index())));
             intRenameLookups++;
             break;
 
           case FloatRegClass:
-            flat_src_reg = tc->flattenFloatIndex(src_reg.regIdx);
-            renamed_reg = map->lookupFloat(flat_src_reg);
+            renamed_reg = map->lookupFloat(RegId(FloatRegClass,
+                        tc->flattenFloatIndex(src_reg.index())));
             fpRenameLookups++;
             break;
 
           case CCRegClass:
-            flat_src_reg = tc->flattenCCIndex(src_reg.regIdx);
-            renamed_reg = map->lookupCC(flat_src_reg);
+            renamed_reg = map->lookupCC(RegId(CCRegClass,
+                        tc->flattenCCIndex(src_reg.index())));
             break;
 
           case MiscRegClass:
             // misc regs don't get flattened
-            flat_src_reg = src_reg.regIdx;
-            renamed_reg = map->lookupMisc(flat_src_reg);
+            renamed_reg = map->lookupMisc(RegId(MiscRegClass, src_reg.index()));
             break;
 
           default:
-            panic("Invalid register class: %d.", src_reg.regClass);
+            panic("Invalid register class: %d.", src_reg.classValue());
         }
 
         DPRINTF(Rename, "[tid:%u]: Looking up %s arch reg %i"
-                " (flattened %i), got phys reg %i (%s)\n", tid,
-                RegClassStrings[src_reg.regClass], src_reg.regIdx,
-                flat_src_reg, renamed_reg->regIdx,
-                RegClassStrings[renamed_reg->regClass]);
+                ", got phys reg %i (%s)\n", tid,
+                src_reg.className(), src_reg.index(),
+                renamed_reg->index(),
+                renamed_reg->className());
 
         inst->renameSrcReg(src_idx, renamed_reg);
 
         // See if the register is ready or not.
         if (scoreboard->getReg(renamed_reg)) {
             DPRINTF(Rename, "[tid:%u]: Register %d (flat: %d) (%s)"
-                    " is ready.\n", tid, renamed_reg->regIdx,
-                    renamed_reg->flatIdx,
-                    RegClassStrings[renamed_reg->regClass]);
+                    " is ready.\n", tid, renamed_reg->index(),
+                    renamed_reg->flatIndex(),
+                    renamed_reg->className());
 
             inst->markSrcRegReady(src_idx);
         } else {
             DPRINTF(Rename, "[tid:%u]: Register %d (flat: %d) (%s)"
-                    " is not ready.\n", tid, renamed_reg->regIdx,
-                    renamed_reg->flatIdx,
-                    RegClassStrings[renamed_reg->regClass]);
+                    " is not ready.\n", tid, renamed_reg->index(),
+                    renamed_reg->flatIndex(),
+                    renamed_reg->className());
         }
 
         ++renameRenameLookups;
@@ -1082,37 +1080,39 @@ DefaultRename<Impl>::renameDestRegs(DynInstPtr &inst, ThreadID tid)
 
     // Rename the destination registers.
     for (int dest_idx = 0; dest_idx < num_dest_regs; dest_idx++) {
-        RegId dest_reg = inst->destRegIdx(dest_idx);
+        const RegId& dest_reg = inst->destRegIdx(dest_idx);
         RegIndex flat_dest_reg;
         typename RenameMap::RenameInfo rename_result;
 
-        switch (dest_reg.regClass) {
+        switch (dest_reg.classValue()) {
           case IntRegClass:
-            flat_dest_reg = tc->flattenIntIndex(dest_reg.regIdx);
-            rename_result = map->renameInt(flat_dest_reg);
+            flat_dest_reg = tc->flattenIntIndex(dest_reg.index());
+            rename_result = map->renameInt(RegId(IntRegClass, flat_dest_reg));
             break;
 
           case FloatRegClass:
-            flat_dest_reg = tc->flattenFloatIndex(dest_reg.regIdx);
-            rename_result = map->renameFloat(flat_dest_reg);
+            flat_dest_reg = tc->flattenFloatIndex(dest_reg.index());
+            rename_result = map->renameFloat(
+                    RegId(FloatRegClass, flat_dest_reg));
             break;
 
           case CCRegClass:
-            flat_dest_reg = tc->flattenCCIndex(dest_reg.regIdx);
-            rename_result = map->renameCC(flat_dest_reg);
+            flat_dest_reg = tc->flattenCCIndex(dest_reg.index());
+            rename_result = map->renameCC(RegId(CCRegClass, flat_dest_reg));
             break;
 
           case MiscRegClass:
             // misc regs don't get flattened
-            flat_dest_reg = dest_reg.regIdx;
-            rename_result = map->renameMisc(dest_reg.regIdx);
+            flat_dest_reg = dest_reg.index();
+            rename_result = map->renameMisc(
+                    RegId(MiscRegClass, flat_dest_reg));
             break;
 
           default:
-            panic("Invalid register class: %d.", dest_reg.regClass);
+            panic("Invalid register class: %d.", dest_reg.classValue());
         }
 
-        RegId flat_uni_dest_reg(dest_reg.regClass, flat_dest_reg);
+        RegId flat_uni_dest_reg(dest_reg.classValue(), flat_dest_reg);
 
         inst->flattenDestReg(dest_idx, flat_uni_dest_reg);
 
@@ -1120,10 +1120,10 @@ DefaultRename<Impl>::renameDestRegs(DynInstPtr &inst, ThreadID tid)
         scoreboard->unsetReg(rename_result.first);
 
         DPRINTF(Rename, "[tid:%u]: Renaming arch reg %i (%s) to physical "
-                "reg %i (%i).\n", tid, dest_reg.regIdx,
-                RegClassStrings[dest_reg.regClass],
-                rename_result.first->regIdx,
-                rename_result.first->flatIdx);
+                "reg %i (%i).\n", tid, dest_reg.index(),
+                dest_reg.className(),
+                rename_result.first->index(),
+                rename_result.first->flatIndex());
 
         // Record the rename information so that a history can be kept.
         RenameHistory hb_entry(inst->seqNum, flat_uni_dest_reg,
@@ -1439,12 +1439,12 @@ DefaultRename<Impl>::dumpHistory()
             cprintf("Seq num: %i\nArch reg[%s]: %i New phys reg:"
                     " %i[%s] Old phys reg: %i[%s]\n",
                     (*buf_it).instSeqNum,
-                    RegClassStrings[(*buf_it).archReg.regClass],
-                    (*buf_it).archReg.regIdx,
-                    (*buf_it).newPhysReg->regIdx,
-                    RegClassStrings[(*buf_it).newPhysReg->regClass],
-                    (*buf_it).prevPhysReg->regIdx,
-                    RegClassStrings[(*buf_it).prevPhysReg->regClass]);
+                    (*buf_it).archReg.className(),
+                    (*buf_it).archReg.index(),
+                    (*buf_it).newPhysReg->index(),
+                    (*buf_it).newPhysReg->className(),
+                    (*buf_it).prevPhysReg->index(),
+                    (*buf_it).prevPhysReg->className());
 
             buf_it++;
         }

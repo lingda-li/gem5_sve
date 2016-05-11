@@ -131,10 +131,9 @@ namespace X86ISA
         static const char * microFormats[9] =
             {"", "t%db", "t%dw", "", "t%dd", "", "", "", "t%d"};
 
-        RegIndex reg_idx = reg.regIdx;
+        RegIndex reg_idx = reg.index();
 
-        switch (reg.regClass) {
-          case IntRegClass: {
+        if (reg.isIntReg()) {
             const char * suffix = "";
             bool fold = reg_idx & IntFoldBit;
             reg_idx &= ~IntFoldBit;
@@ -197,10 +196,8 @@ namespace X86ISA
                 ccprintf(os, microFormats[size], reg_idx - NUM_INTREGS);
             }
             ccprintf(os, suffix);
-            break;
-          }
 
-          case FloatRegClass: {
+        } else if (reg.isFloatReg()) {
             if (reg_idx < NumMMXRegs) {
                 ccprintf(os, "%%mmx%d", reg_idx);
                 return;
@@ -218,19 +215,15 @@ namespace X86ISA
             }
             reg_idx -= NumMicroFpRegs;
             ccprintf(os, "%%st(%d)", reg_idx);
-            break;
-          }
 
-          case CCRegClass:
+        } else if (reg.isCCReg()) {
             ccprintf(os, "%%cc%d", reg_idx);
-            break;
 
-          case MiscRegClass:
+        } else if (reg.isMiscReg()) {
             switch (reg_idx) {
               default:
                 ccprintf(os, "%%ctrl%d", reg_idx);
             }
-            break;
         }
     }
 

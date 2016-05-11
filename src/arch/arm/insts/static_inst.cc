@@ -294,19 +294,19 @@ ArmStaticInst::shift_carry_rs(uint32_t base, uint32_t shamt,
 void
 ArmStaticInst::printReg(std::ostream &os, RegId reg) const
 {
-    switch (reg.regClass) {
+    switch (reg.classValue()) {
       case IntRegClass:
         if (aarch64) {
-            if (reg.regIdx == INTREG_UREG0)
+            if (reg.index() == INTREG_UREG0)
                 ccprintf(os, "ureg0");
-            else if (reg.regIdx == INTREG_SPX)
+            else if (reg.index() == INTREG_SPX)
                ccprintf(os, "%s%s", (intWidth == 32) ? "w" : "", "sp");
-            else if (reg.regIdx == INTREG_X31)
+            else if (reg.index() == INTREG_X31)
                 ccprintf(os, "%szr", (intWidth == 32) ? "w" : "x");
             else
-                ccprintf(os, "%s%d", (intWidth == 32) ? "w" : "x", reg.regIdx);
+                ccprintf(os, "%s%d", (intWidth == 32) ? "w" : "x", reg.index());
         } else {
-            switch (reg.regIdx) {
+            switch (reg.index()) {
               case PCReg:
                 ccprintf(os, "pc");
                 break;
@@ -320,20 +320,20 @@ ArmStaticInst::printReg(std::ostream &os, RegId reg) const
                 ccprintf(os, "lr");
                 break;
               default:
-                ccprintf(os, "r%d", reg.regIdx);
+                ccprintf(os, "r%d", reg.index());
                 break;
             }
         }
         break;
       case FloatRegClass:
-        ccprintf(os, "f%d", reg.regIdx);
+        ccprintf(os, "f%d", reg.index());
         break;
       case MiscRegClass:
-        assert(reg.regIdx < NUM_MISCREGS);
-        ccprintf(os, "%s", ArmISA::miscRegName[reg.regIdx]);
+        assert(reg.index() < NUM_MISCREGS);
+        ccprintf(os, "%s", ArmISA::miscRegName[reg.index()]);
         break;
       case CCRegClass:
-        ccprintf(os, "cc_%s", ArmISA::ccRegName[reg.regIdx]);
+        ccprintf(os, "cc_%s", ArmISA::ccRegName[reg.index()]);
         break;
     }
 }

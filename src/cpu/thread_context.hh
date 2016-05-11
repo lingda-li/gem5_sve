@@ -246,13 +246,13 @@ class ThreadContext
     virtual int flattenMiscIndex(int reg) = 0;
 
     virtual uint64_t
-    readRegOtherThread(RegId misc_reg, ThreadID tid)
+    readRegOtherThread(const RegId& misc_reg, ThreadID tid)
     {
         return 0;
     }
 
     virtual void
-    setRegOtherThread(RegId misc_reg, const MiscReg &val, ThreadID tid)
+    setRegOtherThread(const RegId& misc_reg, const MiscReg &val, ThreadID tid)
     {
     }
 

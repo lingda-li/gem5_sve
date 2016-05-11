@@ -184,11 +184,11 @@ class StaticInst : public RefCounted, public StaticInstFlags
 
     /// Return logical index (architectural reg num) of i'th destination reg.
     /// Only the entries from 0 through numDestRegs()-1 are valid.
-    RegId destRegIdx(int i) const { return _destRegIdx[i]; }
+    const RegId& destRegIdx(int i) const { return _destRegIdx[i]; }
 
     /// Return logical index (architectural reg num) of i'th source reg.
     /// Only the entries from 0 through numSrcRegs()-1 are valid.
-    RegId srcRegIdx(int i)  const { return _srcRegIdx[i]; }
+    const RegId& srcRegIdx(int i)  const { return _srcRegIdx[i]; }
 
     /// Pointer to a statically allocated "null" instruction object.
     /// Used to give eaCompInst() and memAccInst() something to return

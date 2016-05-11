@@ -47,7 +47,7 @@ namespace Minor
 {
 
 bool
-Scoreboard::findIndex(RegId reg, Index &scoreboard_index)
+Scoreboard::findIndex(const RegId& reg, Index &scoreboard_index)
 {
     bool ret = false;
 
@@ -55,19 +55,19 @@ Scoreboard::findIndex(RegId reg, Index &scoreboard_index)
         /* Don't bother with the zero register */
         ret = false;
     } else {
-        switch (reg.regClass)
+        switch (reg.classValue())
         {
           case IntRegClass:
-            scoreboard_index = reg.regIdx;
+            scoreboard_index = reg.index();
             ret = true;
             break;
           case FloatRegClass:
             scoreboard_index = TheISA::NumIntRegs + TheISA::NumCCRegs +
-                reg.regIdx;
+                reg.index();
             ret = true;
             break;
           case CCRegClass:
-            scoreboard_index = TheISA::NumIntRegs + reg.regIdx;
+            scoreboard_index = TheISA::NumIntRegs + reg.index();
             ret = true;
             break;
           case MiscRegClass:
@@ -82,26 +82,27 @@ Scoreboard::findIndex(RegId reg, Index &scoreboard_index)
 
 /** Flatten a RegId, irrespective of what reg type it's pointing to */
 static RegId
-flattenRegIndex(RegId reg, ThreadContext *thread_context)
+flattenRegIndex(const RegId& reg, ThreadContext *thread_context)
 {
-    switch (reg.regClass)
+    RegId ret = reg;
+    switch (ret.classValue())
     {
       case IntRegClass:
-        reg.regIdx = thread_context->flattenIntIndex(reg.regIdx);
+        ret.index() = thread_context->flattenIntIndex(ret.index());
         break;
       case FloatRegClass:
-        reg.regIdx = thread_context->flattenFloatIndex(reg.regIdx);
+        ret.index() = thread_context->flattenFloatIndex(ret.index());
         break;
       case CCRegClass:
-        reg.regIdx = thread_context->flattenCCIndex(reg.regIdx);
+        ret.index() = thread_context->flattenCCIndex(ret.index());
         break;
       case MiscRegClass:
         /* Don't bother to flatten misc regs as we don't need them here */
-        /* return thread_context->flattenMiscIndex(reg); */
+        /* return thread_context->flattenMiscIndex(ret); */
         break;
     }
 
-    return reg;
+    return ret;
 }
 
 void
@@ -142,7 +143,7 @@ Scoreboard::markupInstDests(MinorDynInstPtr inst, Cycles retire_time,
                 *inst, index, numResults[index], returnCycle[index]);
         } else {
             /* Use ZeroReg to mark invalid/untracked dests */
-            inst->flatDestRegIdx[dest_index] = RegId::zeroReg;
+            inst->flatDestRegIdx[dest_index] = RegId(IntRegClass, TheISA::ZeroReg);
         }
     }
 }
@@ -189,7 +190,7 @@ Scoreboard::clearInstDests(MinorDynInstPtr inst, bool clear_unpredictable)
     for (unsigned int dest_index = 0; dest_index < num_dests;
         dest_index++)
     {
-        RegId reg = inst->flatDestRegIdx[dest_index];
+        const RegId& reg = inst->flatDestRegIdx[dest_index];
         Index index;
 
         if (findIndex(reg, index)) {

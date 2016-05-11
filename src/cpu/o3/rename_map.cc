@@ -39,7 +39,7 @@ using namespace std;
 /**** SimpleRenameMap methods ****/
 
 SimpleRenameMap::SimpleRenameMap()
-    : freeList(NULL), zeroReg(0)
+    : freeList(NULL), zeroReg(IntRegClass,0)
 {
 }
 
@@ -51,16 +51,14 @@ SimpleRenameMap::init(unsigned size, SimpleFreeList *_freeList,
     assert(freeList == NULL);
     assert(map.empty());
 
-    map.resize(size);
     freeList = _freeList;
-    zeroReg = _zeroReg;
+    zeroReg = RegId(IntRegClass, _zeroReg);
 }
 
 SimpleRenameMap::RenameInfo
-SimpleRenameMap::rename(RegIndex arch_reg)
+SimpleRenameMap::rename(const RegId& arch_reg)
 {
     PhysRegIdPtr renamed_reg;
-
     // Record the current physical register that is renamed to the
     // requested architected register.
     PhysRegIdPtr prev_reg = map[arch_reg];
@@ -79,8 +77,8 @@ SimpleRenameMap::rename(RegIndex arch_reg)
 
     DPRINTF(Rename, "Renamed reg %d to physical reg %d (%d) old mapping was"
             " %d (%d)\n",
-            arch_reg, renamed_reg->regIdx, renamed_reg->flatIdx,
-            prev_reg->regIdx, prev_reg->flatIdx);
+            arch_reg, renamed_reg->index(), renamed_reg->flatIndex(),
+            prev_reg->index(), prev_reg->flatIndex());
 
     return RenameInfo(renamed_reg, prev_reg);
 }
@@ -106,73 +104,73 @@ UnifiedRenameMap::init(PhysRegFile *_regFile,
 
 
 UnifiedRenameMap::RenameInfo
-UnifiedRenameMap::rename(RegId arch_reg)
+UnifiedRenameMap::rename(const RegId& arch_reg)
 {
-    switch (arch_reg.regClass) {
+    switch (arch_reg.classValue()) {
       case IntRegClass:
-        return renameInt(arch_reg.regIdx);
+        return renameInt(arch_reg);
 
       case FloatRegClass:
-        return renameFloat(arch_reg.regIdx);
+        return renameFloat(arch_reg);
 
       case CCRegClass:
-        return renameCC(arch_reg.regIdx);
+        return renameCC(arch_reg);
 
       case MiscRegClass:
-        return renameMisc(arch_reg.regIdx);
+        return renameMisc(arch_reg);
 
       default:
         panic("rename rename(): unknown reg class %s\n",
-              RegClassStrings[arch_reg.regClass]);
+              arch_reg.className());
     }
 }
 
 
 PhysRegIdPtr
-UnifiedRenameMap::lookup(RegId arch_reg) const
+UnifiedRenameMap::lookup(const RegId& arch_reg) const
 {
-    switch (arch_reg.regClass) {
+    switch (arch_reg.classValue()) {
       case IntRegClass:
-        return lookupInt(arch_reg.regIdx);
+        return lookupInt(arch_reg);
 
       case FloatRegClass:
-        return lookupFloat(arch_reg.regIdx);
+        return lookupFloat(arch_reg);
 
       case CCRegClass:
-        return lookupCC(arch_reg.regIdx);
+        return lookupCC(arch_reg);
 
       case MiscRegClass:
-        return lookupMisc(arch_reg.regIdx);
+        return lookupMisc(arch_reg);
 
       default:
         panic("rename lookup(): unknown reg class %s\n",
-              RegClassStrings[arch_reg.regClass]);
+              arch_reg.className());
     }
 }
 
 void
-UnifiedRenameMap::setEntry(RegId arch_reg, PhysRegIdPtr phys_reg)
+UnifiedRenameMap::setEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
 {
-    switch (arch_reg.regClass) {
+    switch (arch_reg.classValue()) {
       case IntRegClass:
-        return setIntEntry(arch_reg.regIdx, phys_reg);
+        return setIntEntry(arch_reg, phys_reg);
 
       case FloatRegClass:
-        return setFloatEntry(arch_reg.regIdx, phys_reg);
+        return setFloatEntry(arch_reg, phys_reg);
 
       case CCRegClass:
-        return setCCEntry(arch_reg.regIdx, phys_reg);
+        return setCCEntry(arch_reg, phys_reg);
 
       case MiscRegClass:
         // Misc registers do not actually rename, so don't change
         // their mappings.  We end up here when a commit or squash
         // tries to update or undo a hardwired misc reg nmapping,
         // which should always be setting it to what it already is.
-        assert(phys_reg == lookupMisc(arch_reg.regIdx));
+        assert(phys_reg == lookupMisc(arch_reg));
         return;
 
       default:
         panic("rename setEntry(): unknown reg class %s\n",
-              RegClassStrings[arch_reg.regClass]);
+              arch_reg.className());
     }
 }
