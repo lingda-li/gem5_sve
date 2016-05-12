@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2012-2013, 2015 ARM Limited
+# Copyright (c) 2009, 2012-2013, 2015-2017 ARM Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -51,7 +51,6 @@ class ArmMachineType(Enum):
 class ArmSystem(System):
     type = 'ArmSystem'
     cxx_header = "arch/arm/system.hh"
-    load_addr_mask = 0xffffffff
     multi_proc = Param.Bool(True, "Multiprocessor system?")
     boot_loader = VectorParam.String([],
         "File that contains the boot loader code. Zero or more files may be "
@@ -78,7 +77,6 @@ class ArmSystem(System):
 class GenericArmSystem(ArmSystem):
     type = 'GenericArmSystem'
     cxx_header = "arch/arm/system.hh"
-    load_addr_mask = 0x0fffffff
     machine_type = Param.ArmMachineType('VExpress_EMM',
         "Machine id from http://www.arm.linux.org.uk/developer/machines/")
     atags_addr = Param.Addr("Address where default atags structure should " \
@@ -105,6 +103,10 @@ class LinuxArmSystem(GenericArmSystem):
     @classmethod
     def export_methods(cls, code):
         code('''void dumpDmesg();''')
+
+    # Have Linux systems for ARM auto-calc their load_addr_mask for proper
+    # kernel relocation.
+    load_addr_mask = 0x0
 
 class FreebsdArmSystem(GenericArmSystem):
     type = 'FreebsdArmSystem'

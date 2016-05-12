@@ -346,7 +346,6 @@ class RealView(Platform):
         self.nvmem.port = mem_bus.master
         cur_sys.boot_loader = loc('boot.arm')
         cur_sys.atags_addr = 0x100
-        cur_sys.load_addr_mask = 0xfffffff
         cur_sys.load_offset = 0
 
 
@@ -659,7 +658,6 @@ class VExpress_EMM(RealView):
         self.nvmem.port = mem_bus.master
         cur_sys.boot_loader = loc('boot_emm.arm')
         cur_sys.atags_addr = 0x8000000
-        cur_sys.load_addr_mask = 0xfffffff
         cur_sys.load_offset = 0x80000000
 
     # Attach I/O devices that are on chip and also set the appropriate
@@ -770,7 +768,6 @@ class VExpress_EMM64(VExpress_EMM):
         self.nvmem.port = mem_bus.master
         cur_sys.boot_loader = loc('boot_emm.arm64')
         cur_sys.atags_addr = 0x8000000
-        cur_sys.load_addr_mask = 0xfffffff
         cur_sys.load_offset = 0x80000000
 
 
@@ -939,5 +936,4 @@ Interrupts:
         self.nvmem.port = mem_bus.master
         cur_sys.boot_loader = [ loc('boot_emm.arm64'), loc('boot_emm.arm') ]
         cur_sys.atags_addr = 0x8000000
-        cur_sys.load_addr_mask = 0xfffffff
         cur_sys.load_offset = 0x80000000
