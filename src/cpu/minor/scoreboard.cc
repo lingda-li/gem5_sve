@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 ARM Limited
+ * Copyright (c) 2013-2014, 2016 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -66,6 +66,16 @@ Scoreboard::findIndex(const RegId& reg, Index &scoreboard_index)
                 reg.index();
             ret = true;
             break;
+          case VecRegClass:
+            scoreboard_index = TheISA::NumIntRegs + TheISA::NumCCRegs +
+                TheISA::NumFloatRegs + reg.index();
+            ret = true;
+            break;
+          case VecElemClass:
+            scoreboard_index = TheISA::NumIntRegs + TheISA::NumCCRegs +
+                TheISA::NumFloatRegs + TheISA::NumVecRegs + reg.index();
+            ret = true;
+            break;
           case CCRegClass:
             scoreboard_index = TheISA::NumIntRegs + reg.index();
             ret = true;
@@ -74,6 +84,8 @@ Scoreboard::findIndex(const RegId& reg, Index &scoreboard_index)
               /* Don't bother with Misc registers */
             ret = false;
             break;
+          default:
+            panic("Unknown register class: %d", static_cast<int>(reg.classValue()));
         }
     }
 

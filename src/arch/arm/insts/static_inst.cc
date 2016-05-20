@@ -328,6 +328,12 @@ ArmStaticInst::printReg(std::ostream &os, RegId reg) const
       case FloatRegClass:
         ccprintf(os, "f%d", reg.index());
         break;
+      case VecRegClass:
+        ccprintf(os, "v%d", reg.index());
+        break;
+      case VecElemClass:
+        ccprintf(os, "v%d[%d]", reg.index(), reg.elemIndex());
+        break;
       case MiscRegClass:
         assert(reg.index() < NUM_MISCREGS);
         ccprintf(os, "%s", ArmISA::miscRegName[reg.index()]);

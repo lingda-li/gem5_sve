@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 ARM Limited
+ * Copyright (c) 2012, 2016 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -41,6 +41,9 @@
  * Authors: Kevin Lim
  */
 
+#include <iostream>
+#include <iomanip>
+
 #include "arch/kernel_stats.hh"
 #include "base/misc.hh"
 #include "base/trace.hh"
@@ -73,6 +76,16 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
         TheISA::FloatRegBits t2 = two->readFloatRegBits(i);
         if (t1 != t2)
             panic("Float reg idx %d doesn't match, one: %#x, two: %#x",
+                  i, t1, t2);
+    }
+
+    // Then loop through the vector registers.
+    for (int i = 0; i < TheISA::NumVecRegs; ++i) {
+        RegId rid(VecRegClass, i);
+        const TheISA::VecRegContainer& t1 = one->readVecReg(rid);
+        const TheISA::VecRegContainer& t2 = two->readVecReg(rid);
+        if (t1 != t2)
+            panic("Vec reg idx %d doesn't match, one: %#x, two: %#x",
                   i, t1, t2);
     }
     for (int i = 0; i < TheISA::NumMiscRegs; ++i) {
@@ -151,6 +164,12 @@ serialize(ThreadContext &tc, CheckpointOut &cp)
     // compatibility.
     arrayParamOut(cp, "floatRegs.i", floatRegs, NumFloatRegs);
 
+    std::vector<TheISA::VecRegContainer> vecRegs(NumVecRegs);
+    for (int i = 0; i < NumVecRegs; ++i) {
+        vecRegs[i] = tc.readVecRegFlat(i);
+    }
+    SERIALIZE_CONTAINER(vecRegs);
+
     IntReg intRegs[NumIntRegs];
     for (int i = 0; i < NumIntRegs; ++i)
         intRegs[i] = tc.readIntRegFlat(i);
@@ -179,6 +198,12 @@ unserialize(ThreadContext &tc, CheckpointIn &cp)
     arrayParamIn(cp, "floatRegs.i", floatRegs, NumFloatRegs);
     for (int i = 0; i < NumFloatRegs; ++i)
         tc.setFloatRegBitsFlat(i, floatRegs[i]);
+
+    std::vector<TheISA::VecRegContainer> vecRegs(NumVecRegs);
+    UNSERIALIZE_CONTAINER(vecRegs);
+    for (int i = 0; i < NumVecRegs; ++i) {
+        tc.setVecRegFlat(i, vecRegs[i]);
+    }
 
     IntReg intRegs[NumIntRegs];
     UNSERIALIZE_ARRAY(intRegs, NumIntRegs);
