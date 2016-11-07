@@ -1,4 +1,4 @@
-# Copyright (c) 2014 ARM Limited
+# Copyright (c) 2014, 2016 ARM Limited
 # All rights reserved
 #
 # The license below extends only to copyright in the software and shall
@@ -520,7 +520,12 @@ class Operand(object):
         # to avoid 'uninitialized variable' errors from the compiler.
         return self.ctype + ' ' + self.base_name + ' = 0;\n';
 
+src_reg_constructor = '\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);'
+dst_reg_constructor = '\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);'
+
 class IntRegOperand(Operand):
+    reg_class = 'IntRegClass'
+
     def isReg(self):
         return 1
 
@@ -530,18 +535,15 @@ class IntRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
-        reg_class = 'IntRegClass'
 
         if self.is_src:
-            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
-                     (reg_class, self.reg_spec))
+            c_src = src_reg_constructor % (self.reg_class, self.reg_spec)
             if self.hasReadPred():
                 c_src = '\n\tif (%s) {%s\n\t}' % \
                         (self.read_predicate, c_src)
 
         if self.is_dest:
-            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
-                      (reg_class, self.reg_spec))
+            c_dest = dst_reg_constructor % (self.reg_class, self.reg_spec)
             c_dest += '\n\t_numIntDestRegs++;'
             if self.hasWritePred():
                 c_dest = '\n\tif (%s) {%s\n\t}' % \
@@ -594,6 +596,8 @@ class IntRegOperand(Operand):
         return wb
 
 class FloatRegOperand(Operand):
+    reg_class = 'FloatRegClass'
+
     def isReg(self):
         return 1
 
@@ -603,15 +607,12 @@ class FloatRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
-        reg_class = 'FloatRegClass'
 
         if self.is_src:
-            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
-                    (reg_class, self.reg_spec))
+            c_src = src_reg_constructor % (self.reg_class, self.reg_spec)
 
         if self.is_dest:
-            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
-                      (reg_class, self.reg_spec))
+            c_dest = dst_reg_constructor % (self.reg_class, self.reg_spec)
             c_dest += '\n\t_numFPDestRegs++;'
 
         return c_src + c_dest
@@ -656,6 +657,8 @@ class FloatRegOperand(Operand):
         return wb
 
 class CCRegOperand(Operand):
+    reg_class = 'CCRegClass'
+
     def isReg(self):
         return 1
 
@@ -665,18 +668,15 @@ class CCRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
-        reg_class = 'CCRegClass'
 
         if self.is_src:
-            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
-                     (reg_class, self.reg_spec))
+            c_src = src_reg_constructor % (self.reg_class, self.reg_spec)
             if self.hasReadPred():
                 c_src = '\n\tif (%s) {%s\n\t}' % \
                         (self.read_predicate, c_src)
 
         if self.is_dest:
-            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
-                      (reg_class, self.reg_spec))
+            c_dest = dst_reg_constructor % (self.reg_class, self.reg_spec)
             c_dest += '\n\t_numCCDestRegs++;'
             if self.hasWritePred():
                 c_dest = '\n\tif (%s) {%s\n\t}' % \
@@ -729,6 +729,8 @@ class CCRegOperand(Operand):
         return wb
 
 class ControlRegOperand(Operand):
+    reg_class = 'MiscRegClass'
+
     def isReg(self):
         return 1
 
@@ -738,15 +740,12 @@ class ControlRegOperand(Operand):
     def makeConstructor(self, predRead, predWrite):
         c_src = ''
         c_dest = ''
-        reg_class = 'MiscRegClass'
 
         if self.is_src:
-            c_src = ('\n\t_srcRegIdx[_numSrcRegs++] = RegId(%s, %s);' % \
-                     (reg_class, self.reg_spec))
+            c_src = src_reg_constructor % (self.reg_class, self.reg_spec)
 
         if self.is_dest:
-            c_dest = ('\n\t_destRegIdx[_numDestRegs++] = RegId(%s, %s);' % \
-                      (reg_class, self.reg_spec))
+            c_dest = dst_reg_constructor % (self.reg_class, self.reg_spec)
 
         return c_src + c_dest
 
@@ -864,8 +863,8 @@ class OperandList(object):
             op_desc = self.find_base(op_base)
             if op_desc:
                 if op_desc.ext != op_ext:
-                    error('Inconsistent extensions for operand %s' % \
-                          op_base)
+                    error ('Inconsistent extensions for operand %s' % \
+                            op_base)
                 op_desc.is_src = op_desc.is_src or is_src
                 op_desc.is_dest = op_desc.is_dest or is_dest
             else:
