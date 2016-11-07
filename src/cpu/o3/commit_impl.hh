@@ -260,6 +260,13 @@ DefaultCommit<Impl>::regStats()
         .flags(total)
         ;
 
+    statComVector
+        .init(cpu->numThreads)
+        .name(name() + ".vec_insts")
+        .desc("Number of committed Vector instructions.")
+        .flags(total)
+        ;
+
     statComInteger
         .init(cpu->numThreads)
         .name(name()+".int_insts")
@@ -1400,6 +1407,9 @@ DefaultCommit<Impl>::updateComInstStats(DynInstPtr &inst)
     // Floating Point Instruction
     if (inst->isFloating())
         statComFloating[tid]++;
+    // Vector Instruction
+    if (inst->isVector())
+        statComVector[tid]++;
 
     // Function Calls
     if (inst->isCall())

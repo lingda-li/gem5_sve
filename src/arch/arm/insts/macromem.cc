@@ -1598,6 +1598,8 @@ MicroMemOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     printMnemonic(ss);
     if (isFloating())
         printReg(ss, RegId(FloatRegClass, ura));
+    else if (isVector())
+        printReg(ss, RegId(VecRegClass, ura));
     else
         printReg(ss, RegId(IntRegClass, ura));
     ss << ", [";
