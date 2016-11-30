@@ -412,16 +412,15 @@ ISA::readMiscRegNoEffect(int misc_reg) const
 {
     assert(misc_reg < NumMiscRegs);
 
-    int flat_idx = flattenMiscIndex(misc_reg);  // Note: indexes of AArch64
-                                                // registers are left unchanged
+    int flat_idx = flattenRegId(RegId(MiscRegClass, misc_reg)).index();
     MiscReg val;
 
     if (lookUpMiscReg[flat_idx].lower == 0 || flat_idx == MISCREG_SPSR
             || flat_idx == MISCREG_SCTLR_EL1) {
         if (flat_idx == MISCREG_SPSR)
-            flat_idx = flattenMiscIndex(MISCREG_SPSR);
+            flat_idx = flattenRegId(RegId(MiscRegClass, MISCREG_SPSR)).index();
         if (flat_idx == MISCREG_SCTLR_EL1)
-            flat_idx = flattenMiscIndex(MISCREG_SCTLR);
+            flat_idx = flattenRegId(RegId(MiscRegClass, MISCREG_SCTLR)).index();
         val = miscRegs[flat_idx];
     } else
         if (lookUpMiscReg[flat_idx].upper > 0)
@@ -748,27 +747,27 @@ ISA::setMiscRegNoEffect(int misc_reg, const MiscReg &val)
 {
     assert(misc_reg < NumMiscRegs);
 
-    int flat_idx = flattenMiscIndex(misc_reg);  // Note: indexes of AArch64
-                                                // registers are left unchanged
+    // Note: indexes of AArch64 registers are left unchanged
+    RegId flat_regIdx = flattenRegId(RegId(MiscRegClass, misc_reg));
 
-    int flat_idx2 = lookUpMiscReg[flat_idx].upper;
+    int flat_idx2 = lookUpMiscReg[flat_regIdx.index()].upper;
 
     if (flat_idx2 > 0) {
-        miscRegs[lookUpMiscReg[flat_idx].lower] = bits(val, 31, 0);
+        miscRegs[lookUpMiscReg[flat_regIdx.index()].lower] = bits(val, 31, 0);
         miscRegs[flat_idx2] = bits(val, 63, 32);
         DPRINTF(MiscRegs, "Writing to misc reg %d (%d:%d) : %#x\n",
-                misc_reg, flat_idx, flat_idx2, val);
+                misc_reg, flat_regIdx.index(), flat_idx2, val);
     } else {
-        if (flat_idx == MISCREG_SPSR)
-            flat_idx = flattenMiscIndex(MISCREG_SPSR);
-        else if (flat_idx == MISCREG_SCTLR_EL1)
-            flat_idx = flattenMiscIndex(MISCREG_SCTLR);
+        if (flat_regIdx.index() == MISCREG_SPSR)
+            flat_regIdx = flattenRegId(RegId(MiscRegClass, MISCREG_SPSR));
+        else if (flat_regIdx.index() == MISCREG_SCTLR_EL1)
+            flat_regIdx = flattenRegId(RegId(MiscRegClass, MISCREG_SCTLR));
         else
-            flat_idx = (lookUpMiscReg[flat_idx].lower > 0) ?
-                       lookUpMiscReg[flat_idx].lower : flat_idx;
-        miscRegs[flat_idx] = val;
+            flat_regIdx.index() = (lookUpMiscReg[flat_regIdx.index()].lower > 0) ?
+                       lookUpMiscReg[flat_regIdx.index()].lower : flat_regIdx.index();
+        miscRegs[flat_regIdx.index()] = val;
         DPRINTF(MiscRegs, "Writing to misc reg %d (%d) : %#x\n",
-                misc_reg, flat_idx, val);
+                misc_reg, flat_regIdx.index(), val);
     }
 }
 

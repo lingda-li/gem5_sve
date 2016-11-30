@@ -46,7 +46,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <iostream>
 
 #include "arch/generic/types.hh"
 #include "arch/registers.hh"
@@ -109,12 +108,7 @@ class RegId {
      * Returns true if this register is a zero register (needs to have a
      * constant zero value throughout the execution).
      */
-    bool isZeroReg() const
-    {
-        return ((regClass == IntRegClass && regIdx == TheISA::ZeroReg) ||
-                (THE_ISA == ALPHA_ISA && regClass == FloatRegClass &&
-                 regIdx == TheISA::ZeroReg));
-    }
+    inline bool isZeroReg() const;
 
     /** @return true if it is an integer physical register. */
     bool isIntReg() const { return regClass == IntRegClass; }
@@ -132,7 +126,13 @@ class RegId {
     /** @{ */
     const RegIndex& index() const { return regIdx; }
     RegIndex& index() { return regIdx; }
+
+    /** Index flattening.
+     * Required to be able to use a vector for the register mapping.
+     */
+    inline RegIndex flatIndex() const;
     /** @} */
+
     /** Class accessor */
     const RegClass& classValue() const { return regClass; }
     /** Return a const char* with the register class name. */

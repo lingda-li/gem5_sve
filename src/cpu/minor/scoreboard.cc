@@ -84,25 +84,7 @@ Scoreboard::findIndex(const RegId& reg, Index &scoreboard_index)
 static RegId
 flattenRegIndex(const RegId& reg, ThreadContext *thread_context)
 {
-    RegId ret = reg;
-    switch (ret.classValue())
-    {
-      case IntRegClass:
-        ret.index() = thread_context->flattenIntIndex(ret.index());
-        break;
-      case FloatRegClass:
-        ret.index() = thread_context->flattenFloatIndex(ret.index());
-        break;
-      case CCRegClass:
-        ret.index() = thread_context->flattenCCIndex(ret.index());
-        break;
-      case MiscRegClass:
-        /* Don't bother to flatten misc regs as we don't need them here */
-        /* return thread_context->flattenMiscIndex(ret); */
-        break;
-    }
-
-    return ret;
+    return thread_context->flattenRegId(reg);
 }
 
 void

@@ -1016,27 +1016,16 @@ DefaultRename<Impl>::renameSrcRegs(DynInstPtr &inst, ThreadID tid)
         const RegId& src_reg = inst->srcRegIdx(src_idx);
         PhysRegIdPtr renamed_reg;
 
+        renamed_reg = map->lookup(tc->flattenRegId(src_reg));
         switch (src_reg.classValue()) {
           case IntRegClass:
-            renamed_reg = map->lookupInt(RegId(IntRegClass,
-                        tc->flattenIntIndex(src_reg.index())));
             intRenameLookups++;
             break;
-
           case FloatRegClass:
-            renamed_reg = map->lookupFloat(RegId(FloatRegClass,
-                        tc->flattenFloatIndex(src_reg.index())));
             fpRenameLookups++;
             break;
-
           case CCRegClass:
-            renamed_reg = map->lookupCC(RegId(CCRegClass,
-                        tc->flattenCCIndex(src_reg.index())));
-            break;
-
           case MiscRegClass:
-            // misc regs don't get flattened
-            renamed_reg = map->lookupMisc(RegId(MiscRegClass, src_reg.index()));
             break;
 
           default:
@@ -1081,40 +1070,13 @@ DefaultRename<Impl>::renameDestRegs(DynInstPtr &inst, ThreadID tid)
     // Rename the destination registers.
     for (int dest_idx = 0; dest_idx < num_dest_regs; dest_idx++) {
         const RegId& dest_reg = inst->destRegIdx(dest_idx);
-        RegIndex flat_dest_reg;
         typename RenameMap::RenameInfo rename_result;
 
-        switch (dest_reg.classValue()) {
-          case IntRegClass:
-            flat_dest_reg = tc->flattenIntIndex(dest_reg.index());
-            rename_result = map->renameInt(RegId(IntRegClass, flat_dest_reg));
-            break;
+        RegId flat_dest_regid = tc->flattenRegId(dest_reg);
 
-          case FloatRegClass:
-            flat_dest_reg = tc->flattenFloatIndex(dest_reg.index());
-            rename_result = map->renameFloat(
-                    RegId(FloatRegClass, flat_dest_reg));
-            break;
+        rename_result = map->rename(flat_dest_regid);
 
-          case CCRegClass:
-            flat_dest_reg = tc->flattenCCIndex(dest_reg.index());
-            rename_result = map->renameCC(RegId(CCRegClass, flat_dest_reg));
-            break;
-
-          case MiscRegClass:
-            // misc regs don't get flattened
-            flat_dest_reg = dest_reg.index();
-            rename_result = map->renameMisc(
-                    RegId(MiscRegClass, flat_dest_reg));
-            break;
-
-          default:
-            panic("Invalid register class: %d.", dest_reg.classValue());
-        }
-
-        RegId flat_uni_dest_reg(dest_reg.classValue(), flat_dest_reg);
-
-        inst->flattenDestReg(dest_idx, flat_uni_dest_reg);
+        inst->flattenDestReg(dest_idx, flat_dest_regid);
 
         // Mark Scoreboard entry as not ready
         scoreboard->unsetReg(rename_result.first);
@@ -1126,7 +1088,7 @@ DefaultRename<Impl>::renameDestRegs(DynInstPtr &inst, ThreadID tid)
                 rename_result.first->flatIndex());
 
         // Record the rename information so that a history can be kept.
-        RenameHistory hb_entry(inst->seqNum, flat_uni_dest_reg,
+        RenameHistory hb_entry(inst->seqNum, flat_dest_regid,
                                rename_result.first,
                                rename_result.second);
 

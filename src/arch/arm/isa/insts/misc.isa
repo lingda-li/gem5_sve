@@ -813,7 +813,7 @@ let {{
     exec_output += PredOpExecute.subst(bfiIop)
 
     mrc14code = '''
-    MiscRegIndex miscReg = (MiscRegIndex) xc->tcBase()->flattenMiscIndex(op1);
+    MiscRegIndex miscReg = (MiscRegIndex) xc->tcBase()->flattenRegId(RegId(MiscRegClass, op1)).index();
     if (!canReadCoprocReg(miscReg, Scr, Cpsr, xc->tcBase())) {
         return std::make_shared<UndefinedInstruction>(machInst, false,
                                                       mnemonic);
@@ -835,7 +835,7 @@ let {{
 
 
     mcr14code = '''
-    MiscRegIndex miscReg = (MiscRegIndex) xc->tcBase()->flattenMiscIndex(dest);
+    MiscRegIndex miscReg = (MiscRegIndex) xc->tcBase()->flattenRegId(RegId(MiscRegClass, dest)).index();
     if (!canWriteCoprocReg(miscReg, Scr, Cpsr, xc->tcBase())) {
         return std::make_shared<UndefinedInstruction>(machInst, false,
                                                       mnemonic);
@@ -858,7 +858,7 @@ let {{
     mrc15code = '''
     int preFlatOp1 = flattenMiscRegNsBanked(op1, xc->tcBase());
     MiscRegIndex miscReg = (MiscRegIndex)
-                           xc->tcBase()->flattenMiscIndex(preFlatOp1);
+                           xc->tcBase()->flattenRegId(RegId(MiscRegClass, preFlatOp1)).index();
     bool hypTrap = mcrMrc15TrapToHyp(miscReg, Hcr, Cpsr, Scr, Hdcr, Hstr,
                                      Hcptr, imm);
     bool canRead = canReadCoprocReg(miscReg, Scr, Cpsr, xc->tcBase());
@@ -888,7 +888,7 @@ let {{
     mcr15code = '''
     int preFlatDest = flattenMiscRegNsBanked(dest, xc->tcBase());
     MiscRegIndex miscReg = (MiscRegIndex)
-                       xc->tcBase()->flattenMiscIndex(preFlatDest);
+                       xc->tcBase()->flattenRegId(RegId(MiscRegClass, preFlatDest)).index();
     bool hypTrap  = mcrMrc15TrapToHyp(miscReg, Hcr, Cpsr, Scr, Hdcr, Hstr,
                                       Hcptr, imm);
     bool canWrite = canWriteCoprocReg(miscReg, Scr, Cpsr, xc->tcBase());
@@ -918,7 +918,7 @@ let {{
     mrrc15code = '''
     int preFlatOp1 = flattenMiscRegNsBanked(op1, xc->tcBase());
     MiscRegIndex miscReg = (MiscRegIndex)
-                           xc->tcBase()->flattenMiscIndex(preFlatOp1);
+                           xc->tcBase()->flattenRegId(RegId(MiscRegClass, preFlatOp1)).index();
     bool hypTrap = mcrrMrrc15TrapToHyp(miscReg, Cpsr, Scr, Hstr, Hcr, imm);
     bool canRead = canReadCoprocReg(miscReg, Scr, Cpsr, xc->tcBase());
 
@@ -947,7 +947,7 @@ let {{
     mcrr15code = '''
     int preFlatDest = flattenMiscRegNsBanked(dest, xc->tcBase());
     MiscRegIndex miscReg = (MiscRegIndex)
-                           xc->tcBase()->flattenMiscIndex(preFlatDest);
+                           xc->tcBase()->flattenRegId(RegId(MiscRegClass, preFlatDest)).index();
     bool hypTrap  = mcrrMrrc15TrapToHyp(miscReg, Cpsr, Scr, Hstr, Hcr, imm);
     bool canWrite = canWriteCoprocReg(miscReg, Scr, Cpsr, xc->tcBase());
 

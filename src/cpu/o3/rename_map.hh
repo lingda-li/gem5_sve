@@ -65,8 +65,7 @@
 class SimpleRenameMap
 {
   private:
-
-    using Arch2PhysMap = std::map<RegId, PhysRegIdPtr>;
+    using Arch2PhysMap = std::vector<PhysRegIdPtr>;
     /** The acutal arch-to-phys register map */
     Arch2PhysMap map;
 
@@ -122,10 +121,8 @@ class SimpleRenameMap
      */
     PhysRegIdPtr lookup(const RegId& arch_reg) const
     {
-        auto it = map.find(arch_reg);
-        panic_if(it == map.end(), "Looking for the rename of a non-existing "
-                "RegId: (%d, %s)", arch_reg.index(), arch_reg.className());
-        return it->second;
+        assert(arch_reg.flatIndex() <= map.size());
+        return map[arch_reg.flatIndex()];
     }
 
     /**
@@ -136,12 +133,8 @@ class SimpleRenameMap
      */
     void setEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
     {
-        Arch2PhysMap::iterator it = map.find(arch_reg);
-        if (it == map.end()) {
-            map.emplace(arch_reg, phys_reg);
-        } else {
-            it->second = phys_reg;
-        }
+        assert(arch_reg.flatIndex() <= map.size());
+        map[arch_reg.flatIndex()] = phys_reg;
     }
 
     /** Return the number of free entries on the associated free list. */
@@ -194,54 +187,34 @@ class UnifiedRenameMap
     /**
      * Tell rename map to get a new free physical register to remap
      * the specified architectural register. This version takes a
-     * flattened architectural register id and calls the
-     * appropriate class-specific rename table.
-     * @param arch_reg The architectural register index to remap.
+     * RegId and reads the  appropriate class-specific rename table.
+     * @param arch_reg The architectural register id to remap.
      * @return A RenameInfo pair indicating both the new and previous
      * physical registers.
      */
-    RenameInfo rename(const RegId& arch_reg);
-
-    /**
-     * Perform rename() on an integer register, given an
-     * integer register index.
-     */
-    RenameInfo renameInt(const RegId& arch_reg)
+    RenameInfo rename(const RegId& arch_reg)
     {
-        return intMap.rename(arch_reg);
-    }
+        switch (arch_reg.classValue()) {
+          case IntRegClass:
+            return intMap.rename(arch_reg);
+          case FloatRegClass:
+            return floatMap.rename(arch_reg);
+          case CCRegClass:
+            return ccMap.rename(arch_reg);
+          case MiscRegClass:
+            {
+            // misc regs aren't really renamed, just remapped
+            PhysRegIdPtr phys_reg = lookup(arch_reg);
+            // Set the new register to the previous one to keep the same
+            // mapping throughout the execution.
+            return RenameInfo(phys_reg, phys_reg);
+            }
 
-    /**
-     * Perform rename() on a floating-point register, given a
-     * floating-point register index.
-     */
-    RenameInfo renameFloat(const RegId& arch_reg)
-    {
-        return floatMap.rename(arch_reg);
+          default:
+            panic("rename rename(): unknown reg class %s\n",
+                  arch_reg.className());
+        }
     }
-
-    /**
-     * Perform rename() on a condition-code register, given a
-     * condition-code register index.
-     */
-    RenameInfo renameCC(const RegId& arch_reg)
-    {
-        return ccMap.rename(arch_reg);
-    }
-
-    /**
-     * Perform rename() on a misc register, given a
-     * misc register index.
-     */
-    RenameInfo renameMisc(const RegId& arch_reg)
-    {
-        // misc regs aren't really renamed, just remapped
-        PhysRegIdPtr phys_reg = lookupMisc(arch_reg);
-        // Set the new register to the previous one to keep the same
-        // mapping throughout the execution.
-        return RenameInfo(phys_reg, phys_reg);
-    }
-
 
     /**
      * Look up the physical register mapped to an architectural register.
@@ -250,44 +223,27 @@ class UnifiedRenameMap
      * @param arch_reg The architectural register to look up.
      * @return The physical register it is currently mapped to.
      */
-    PhysRegIdPtr lookup(const RegId& arch_reg) const;
-
-    /**
-     * Perform lookup() on an integer register, given a
-     * integer register index.
-     */
-    PhysRegIdPtr lookupInt(const RegId& rel_arch_reg) const
+    PhysRegIdPtr lookup(const RegId& arch_reg) const
     {
-        return intMap.lookup(rel_arch_reg);
-    }
+        switch (arch_reg.classValue()) {
+          case IntRegClass:
+            return intMap.lookup(arch_reg);
 
-    /**
-     * Perform lookup() on a floating-point register, given a
-     * floating-point register index.
-     */
-    PhysRegIdPtr lookupFloat(const RegId& rel_arch_reg) const
-    {
-        return  floatMap.lookup(rel_arch_reg);
-    }
+          case FloatRegClass:
+            return  floatMap.lookup(arch_reg);
 
-    /**
-     * Perform lookup() on a condition-code register, given a
-     * condition-code register index.
-     */
-    PhysRegIdPtr lookupCC(const RegId& rel_arch_reg) const
-    {
-        return ccMap.lookup(rel_arch_reg);
-    }
+          case CCRegClass:
+            return ccMap.lookup(arch_reg);
 
-    /**
-     * Perform lookup() on a misc register, given a relative
-     * misc register index.
-     */
-    PhysRegIdPtr lookupMisc(const RegId& rel_arch_reg) const
-    {
-        // misc regs aren't really renamed, they keep the same
-        // mapping throughout the execution.
-        return regFile->getMiscRegId(rel_arch_reg.index());
+          case MiscRegClass:
+            // misc regs aren't really renamed, they keep the same
+            // mapping throughout the execution.
+            return regFile->getMiscRegId(arch_reg.flatIndex());
+
+          default:
+            panic("rename lookup(): unknown reg class %s\n",
+                  arch_reg.className());
+        }
     }
 
     /**
@@ -298,36 +254,33 @@ class UnifiedRenameMap
      * @param arch_reg The architectural register to remap.
      * @param phys_reg The physical register to remap it to.
      */
-    void setEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg);
-
-    /**
-     * Perform setEntry() on an integer register, given a
-     * integer register index.
-     */
-    void setIntEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
+    void setEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
     {
-        assert(phys_reg->isIntPhysReg());
-        intMap.setEntry(arch_reg, phys_reg);
-    }
+        switch (arch_reg.classValue()) {
+          case IntRegClass:
+            assert(phys_reg->isIntPhysReg());
+            return intMap.setEntry(arch_reg, phys_reg);
 
-    /**
-     * Perform setEntry() on a floating-point register, given a
-     * floating-point register index.
-     */
-    void setFloatEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
-    {
-        assert(phys_reg->isFloatPhysReg());
-        floatMap.setEntry(arch_reg, phys_reg);
-    }
+          case FloatRegClass:
+            assert(phys_reg->isFloatPhysReg());
+            return floatMap.setEntry(arch_reg, phys_reg);
 
-    /**
-     * Perform setEntry() on a condition-code register, given a
-     * condition-code register index.
-     */
-    void setCCEntry(const RegId& arch_reg, PhysRegIdPtr phys_reg)
-    {
-        assert(phys_reg->isCCPhysReg());
-        ccMap.setEntry(arch_reg, phys_reg);
+          case CCRegClass:
+            assert(phys_reg->isCCPhysReg());
+            return ccMap.setEntry(arch_reg, phys_reg);
+
+          case MiscRegClass:
+            // Misc registers do not actually rename, so don't change
+            // their mappings.  We end up here when a commit or squash
+            // tries to update or undo a hardwired misc reg nmapping,
+            // which should always be setting it to what it already is.
+            assert(phys_reg == lookup(arch_reg));
+            return;
+
+          default:
+            panic("rename setEntry(): unknown reg class %s\n",
+                  arch_reg.className());
+        }
     }
 
     /**
