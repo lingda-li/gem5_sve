@@ -238,7 +238,7 @@ class LSQUnit {
      * @todo: Move the number of used ports up to the LSQ level so it can
      * be shared by all LSQ units.
      */
-    void tick() { usedPorts = 0; }
+    void tick() { usedStorePorts = 0; }
 
     /** Inserts an instruction. */
     void insert(const DynInstPtr &inst);
@@ -496,11 +496,11 @@ class LSQUnit {
     typename StoreQueue::iterator storeWBIt;
 
     /// @todo Consider moving to a more advanced model with write vs read ports
-    /** The number of cache ports available each cycle. */
-    int cachePorts;
+    /** The number of cache ports available each cycle (stores only). */
+    int cacheStorePorts;
 
-    /** The number of used cache ports in this cycle. */
-    int usedPorts;
+    /** The number of used cache ports in this cycle by stores. */
+    int usedStorePorts;
 
     //list<InstSeqNum> mshrSeqNums;
 
@@ -823,8 +823,6 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
     if (!load_inst->memData) {
         load_inst->memData = new uint8_t[req->mainRequest()->getSize()];
     }
-
-    ++usedPorts;
 
     // if we the cache is not blocked, do cache access
     if (req->senderState() == nullptr) {

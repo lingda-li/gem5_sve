@@ -172,7 +172,7 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
 
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
-    cachePorts = params->cachePorts;
+    cacheStorePorts = params->cacheStorePorts;
     needsTSO = params->needsTSO;
 
     resetState();
@@ -188,7 +188,7 @@ LSQUnit<Impl>::resetState()
 
     storeWBIt = storeQueue.begin();
 
-    usedPorts = 0;
+    usedStorePorts = 0;
 
     retryPkt = NULL;
     memDepViolator = NULL;
@@ -864,7 +864,7 @@ LSQUnit<Impl>::writebackStores()
     }
 
     // Not sure this should set it to 0.
-    usedPorts = 0;
+    usedStorePorts = 0;
 
     assert(stores >= 0 && storesToWB >= 0);
 }
