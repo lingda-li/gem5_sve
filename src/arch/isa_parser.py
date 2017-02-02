@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2016 ARM Limited
+# Copyright (c) 2014, 2016-2017 ARM Limited
 # All rights reserved
 #
 # The license below extends only to copyright in the software and shall
@@ -667,6 +667,7 @@ class VecRegOperand(Operand):
 
     def __init__(self, parser, full_name, ext, is_src, is_dest):
         Operand.__init__(self, parser, full_name, ext, is_src, is_dest)
+        self.elemExt = None
         self.parser = parser
 
     def isReg(self):
@@ -687,12 +688,12 @@ class VecRegOperand(Operand):
 
     def makeDecl(self):
         if not self.is_dest and self.is_src:
-            c_decl = '\t/* Vars for %s*/;' % (self.base_name)
+            c_decl = '\t/* Vars for %s*/' % (self.base_name)
             if hasattr(self, 'active_elems'):
                 if self.active_elems:
                     for elem in self.active_elems:
                         c_decl += self.makeDeclElem(elem)
-            return c_decl
+            return c_decl + '\t/* End vars for %s */\n' % (self.base_name)
         else:
             return ''
 
@@ -734,9 +735,13 @@ class VecRegOperand(Operand):
         else:
             rindex = '%d' % self.dest_reg_idx
 
-        c_readw = '\t\tTheISA::VecRegContainer tmp_d%s = xc->%s(this, %s);\n' \
-                % (rindex, func, rindex) + \
-                '\t\tauto %s = tmp_d%s.as<%s>();\n' % (self.base_name,
+        c_readw = '\t\t%s& tmp_d%s = xc->%s(this, %s);\n'\
+                % ('TheISA::VecRegContainer', rindex, func, rindex)
+        if self.elemExt:
+            c_readw += '\t\tauto %s = tmp_d%s.as<%s>();\n' % (self.base_name,
+                        rindex, self.parser.operandTypeMap[self.elemExt])
+        if self.ext:
+            c_readw += '\t\tauto %s = tmp_d%s.as<%s>();\n' % (self.base_name,
                         rindex, self.parser.operandTypeMap[self.ext])
         if hasattr(self, 'active_elems'):
             if self.active_elems:
@@ -772,12 +777,16 @@ class VecRegOperand(Operand):
         if self.is_dest and self.is_src:
             name += '_merger'
 
-        c_read =  '\t\tTheISA::VecRegContainer tmp_s%s = xc->%s(this, %s);\n' \
-                % (rindex, func, rindex)
-        c_read += '\t\tauto %s = tmp_s%s.as<%s>();\n' % \
-             (name, rindex,
-                     self.parser.operandTypeMap[self.ext],
-             )
+        c_read =  '\t\t%s& tmp_s%s = xc->%s(this, %s);\n' \
+                % ('const TheISA::VecRegContainer', rindex, func, rindex)
+        # If the parser has detected that elements are being access, create
+        # the appropriate view
+        if self.elemExt:
+            c_read += '\t\tauto %s = tmp_s%s.as<%s>();\n' % \
+                 (name, rindex, self.parser.operandTypeMap[self.elemExt])
+        if self.ext:
+            c_read += '\t\tauto %s = tmp_s%s.as<%s>();\n' % \
+                 (name, rindex, self.parser.operandTypeMap[self.ext])
         if hasattr(self, 'active_elems'):
             if self.active_elems:
                 for elem in self.active_elems:
@@ -789,22 +798,12 @@ class VecRegOperand(Operand):
         if self.write_code != None:
             return self.buildWriteCode(func)
 
-        if predWrite:
-            wp = '_destIndex++'
-        else:
-            wp = '%d' % self.dest_reg_idx
-        wp = 'xc->%s(this, %s, final_val);' % (func, wp)
-
         wb = '''
-        {
-            %s& final_val = %s;
-            %s\n
-            %s
-        }''' % (self.ctype, self.base_name, wp,
-                '''if (traceData) {
-                    panic("Vectors not supported yet in tracedata");
-                    /*traceData->setData(final_val);*/
-                }''')
+        if (traceData) {
+            panic("Vectors not supported yet in tracedata");
+            /*traceData->setData(final_val);*/
+        }
+        '''
         return wb
 
     def finalize(self, predRead, predWrite):
@@ -1072,7 +1071,7 @@ class OperandList(object):
             # see if we've already seen this one
             op_desc = self.find_base(op_base)
             if op_desc:
-                if op_ext != '' and op_desc.ext != op_ext:
+                if op_ext and op_ext != '' and op_desc.ext != op_ext:
                     error ('Inconsistent extensions for operand %s: %s - %s' \
                             % (op_base, op_desc.ext, op_ext))
                 op_desc.is_src = op_desc.is_src or is_src
@@ -1097,7 +1096,7 @@ class OperandList(object):
                 # if operand is a vector elem, add the corresponding vector
                 # operand if not already done
                 if isElem:
-                    op_desc.ext = elem_op[1]
+                    op_desc.elemExt = elem_op[1]
                     op_desc.active_elems = [elem_op]
                 self.append(op_desc)
             # start next search after end of current match

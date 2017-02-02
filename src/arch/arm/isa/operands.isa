@@ -1,5 +1,5 @@
 // -*- mode:c++ -*-
-// Copyright (c) 2010-2014, 2016 ARM Limited
+// Copyright (c) 2010-2014, 2016-2017 ARM Limited
 // All rights reserved
 //
 // The license below extends only to copyright in the software and shall
@@ -50,7 +50,9 @@ def operand_types {{
     'tud' : 'Twin64_t',
     'sf' : 'float',
     'df' : 'double',
-    'vc' : 'TheISA::VecRegContainer'
+    'vc' : 'TheISA::VecRegContainer',
+    # For operations that are implemented as a template
+    'x' : 'TPElem',
 }};
 
 let {{
