@@ -336,7 +336,7 @@ class ExecContext {
      * @name ARM-Specific Interfaces
      */
 
-    virtual bool readPredicate() = 0;
+    virtual bool readPredicate() const = 0;
     virtual void setPredicate(bool val) = 0;
 
     /** @} */
