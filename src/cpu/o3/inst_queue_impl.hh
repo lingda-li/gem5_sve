@@ -1133,9 +1133,6 @@ template <class Impl>
 void
 InstructionQueue<Impl>::blockMemInst(const DynInstPtr &blocked_inst)
 {
-    blocked_inst->translationStarted(false);
-    blocked_inst->translationCompleted(false);
-
     blocked_inst->clearIssued();
     blocked_inst->clearCanIssue();
     blockedMemInsts.push_back(blocked_inst);
@@ -1277,9 +1274,9 @@ InstructionQueue<Impl>::doSquash(ThreadID tid)
                         dependGraph.remove(src_reg->flatIndex(), squashed_inst);
                     }
 
-
                     ++iqSquashedOperandsExamined;
                 }
+
             } else if (!squashed_inst->isStoreConditional() ||
                        !squashed_inst->isCompleted()) {
                 NonSpecMapIt ns_inst_it =
