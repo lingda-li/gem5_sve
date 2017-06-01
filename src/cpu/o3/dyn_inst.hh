@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2016 ARM Limited
+ * Copyright (c) 2010, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -337,7 +337,6 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     template <typename LD>
     void
     setVecLaneOperand(const StaticInst *si, int idx, const LD& val)
-                            override
     {
         return cpu->template setVecLane(_destRegIdx[idx], val);
     }
