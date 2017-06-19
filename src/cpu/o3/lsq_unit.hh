@@ -155,7 +155,7 @@ class LSQUnit {
     {
       private:
         /** The store data. */
-        char _data[16];
+        char _data[64];  // TODO: 64 should become a parameter
         /** Whether or not the store can writeback. */
         bool _canWB;
         /** Whether or not the store is committed. */
@@ -715,7 +715,7 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
         assert(store_it->valid());
         store_size = store_it->size();
 
-        if (store_size != 0 && store_it->instruction()->strictlyOrdered()) {
+        if (store_size != 0 && !store_it->instruction()->strictlyOrdered()) {
             assert(store_it->instruction()->effAddrValid());
 
             // Check if the store data is within the lower and upper bounds of
@@ -858,7 +858,7 @@ LSQUnit<Impl>::write(LSQRequest *req, uint8_t *data, int store_idx)
     storeQueue[store_idx].size() = size;
     storeQueue[store_idx].isAllZeros() =
         req->request()->getFlags() & Request::CACHE_BLOCK_ZERO;
-    assert(size <= sizeof(SQEntry::DataSize) ||
+    assert(size <= SQEntry::DataSize ||
             (req->request()->getFlags() & Request::CACHE_BLOCK_ZERO));
 
     if (!(req->request()->getFlags() & Request::CACHE_BLOCK_ZERO))
