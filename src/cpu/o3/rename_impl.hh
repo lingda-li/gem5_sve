@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012, 2014-2016 ARM Limited
+ * Copyright (c) 2010-2012, 2014-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved.
  *
@@ -1027,6 +1027,9 @@ DefaultRename<Impl>::renameSrcRegs(DynInstPtr &inst, ThreadID tid)
             break;
           case FloatRegClass:
             fpRenameLookups++;
+            break;
+          case VecRegClass:
+            vecRenameLookups++;
             break;
           case CCRegClass:
           case MiscRegClass:
