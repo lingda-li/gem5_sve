@@ -4099,7 +4099,7 @@ fplibSub(uint64_t op1, uint64_t op2, FPSCR &fpscr)
 
 template <>
 uint32_t
-fplibTrigMulAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2, FPSCR &fpscr)
+fplibTrigMAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2, FPSCR &fpscr)
 {
     static uint32_t coeff[2][8] = {
         {
@@ -4132,7 +4132,7 @@ fplibTrigMulAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2, FPSCR &fpscr)
 
 template <>
 uint64_t
-fplibTrigMulAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2, FPSCR &fpscr)
+fplibTrigMAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2, FPSCR &fpscr)
 {
     static uint64_t coeff[2][8] = {
         {

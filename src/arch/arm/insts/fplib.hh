@@ -154,7 +154,7 @@ template <class T>
 T fplibSub(T op1, T op2, FPSCR &fpscr);
 /** Floating-point trigonometric multiply-add coefficient. */
 template <class T>
-T fplibTrigMulAdd(uint8_t coeff_index, T op1, T op2, FPSCR &fpscr);
+T fplibTrigMAdd(uint8_t coeff_index, T op1, T op2, FPSCR &fpscr);
 /** Floating-point trigonometric starting value. */
 template <class T>
 T fplibTrigSMul(T op1, T op2, FPSCR &fpscr);
@@ -347,11 +347,11 @@ uint32_t fplibSub(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
 uint64_t fplibSub(uint64_t op1, uint64_t op2, FPSCR &fpscr);
 template <>
-uint32_t fplibTrigMulAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2,
-                         FPSCR &fpscr);
+uint32_t fplibTrigMAdd(uint8_t coeff_index, uint32_t op1, uint32_t op2,
+                       FPSCR &fpscr);
 template <>
-uint64_t fplibTrigMulAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2,
-                         FPSCR &fpscr);
+uint64_t fplibTrigMAdd(uint8_t coeff_index, uint64_t op1, uint64_t op2,
+                       FPSCR &fpscr);
 template <>
 uint32_t fplibTrigSMul(uint32_t op1, uint32_t op2, FPSCR &fpscr);
 template <>
