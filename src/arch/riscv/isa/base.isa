@@ -51,7 +51,7 @@ output header {{
         {}
 
         std::string
-        regName(RegIndex reg) const;
+        regName(RegId reg) const;
 
         virtual std::string
         generateDisassembly(Addr pc, const SymbolTable *symtab) const = 0;
@@ -68,12 +68,14 @@ output header {{
 //Ouputs to decoder.cc
 output decoder {{
     std::string
-    RiscvStaticInst::regName(RegIndex reg) const
+    RiscvStaticInst::regName(RegId reg) const
     {
-        if (reg < FP_Reg_Base) {
-            return std::string(RegisterNames[reg]);
+        if (reg.isIntReg()) {
+            return std::string(RegisterNames[reg.index()]);
+        } else if (reg.isFloatReg()) {
+            return std::string("f") + std::to_string(reg.index());
         } else {
-            return std::string("f") + std::to_string(reg - FP_Reg_Base);
+            return csprintf("%s{%i}", reg.className(), reg.index());
         }
     }
 }};

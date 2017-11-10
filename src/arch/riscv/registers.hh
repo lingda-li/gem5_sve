@@ -50,6 +50,8 @@
 #include <map>
 #include <string>
 
+#include "arch/generic/pred_reg.hh"
+#include "arch/generic/vec_reg.hh"
 #include "arch/riscv/generated/max_inst_regs.hh"
 #include "base/types.hh"
 #include "sim/system.hh"
@@ -60,17 +62,35 @@ using RiscvISAInst::MaxInstSrcRegs;
 using RiscvISAInst::MaxInstDestRegs;
 const int MaxMiscDestRegs = 1;
 
-typedef uint_fast16_t RegIndex;
 typedef uint64_t IntReg;
 typedef uint64_t FloatRegBits;
 typedef double FloatReg;
 typedef uint8_t CCReg; // Not applicable to Riscv
 typedef uint64_t MiscReg;
 
+// Dummy typedefs and constants - not applicable to Riscv
+constexpr unsigned NumVecElemPerVecReg = 2;
+using VecElem = uint32_t;
+using VecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, false>;
+using ConstVecReg = ::VecRegT<VecElem, NumVecElemPerVecReg, true>;
+using VecRegContainer = VecReg::Container;
+constexpr size_t VecRegSizeBytes = NumVecElemPerVecReg * sizeof(VecElem);
+
+// Dummy typedefs and constants - not applicable to Riscv
+constexpr bool PredRegHasPackedRepr = false;
+using PredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                           PredRegHasPackedRepr, false>;
+using ConstPredReg = ::PredRegT<VecElem, NumVecElemPerVecReg,
+                                PredRegHasPackedRepr, true>;
+using PredRegContainer = PredReg::Container;
+constexpr size_t PredRegSizeBits = NumVecElemPerVecReg * sizeof(VecElem);
+
 const int NumIntArchRegs = 32;
 const int NumMicroIntRegs = 1;
 const int NumIntRegs = NumIntArchRegs + NumMicroIntRegs;
 const int NumFloatRegs = 32;
+const int NumVecRegs = 1;  // Not applicable to Riscv
+const int NumPredRegs = 1;  // Not applicable to Riscv
 const int NumCCRegs = 0;
 const int NumMiscRegs = 4096;
 

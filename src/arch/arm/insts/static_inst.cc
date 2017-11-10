@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014, 2016 ARM Limited
+ * Copyright (c) 2010-2014, 2016-2017 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -292,19 +292,22 @@ ArmStaticInst::shift_carry_rs(uint32_t base, uint32_t shamt,
 
 
 void
-ArmStaticInst::printReg(std::ostream &os, RegId reg) const
+ArmStaticInst::printReg(std::ostream &os, RegId reg, bool isSveVecReg,
+        uint8_t opWidth) const
 {
+    if (opWidth == 0)
+        opWidth = intWidth;
     switch (reg.classValue()) {
       case IntRegClass:
         if (aarch64) {
             if (reg.index() == INTREG_UREG0)
                 ccprintf(os, "ureg0");
             else if (reg.index() == INTREG_SPX)
-               ccprintf(os, "%s%s", (intWidth == 32) ? "w" : "", "sp");
+               ccprintf(os, "%s%s", (opWidth == 32) ? "w" : "", "sp");
             else if (reg.index() == INTREG_X31)
-                ccprintf(os, "%szr", (intWidth == 32) ? "w" : "x");
+                ccprintf(os, "%szr", (opWidth == 32) ? "w" : "x");
             else
-                ccprintf(os, "%s%d", (intWidth == 32) ? "w" : "x", reg.index());
+                ccprintf(os, "%s%d", (opWidth == 32) ? "w" : "x", reg.index());
         } else {
             switch (reg.index()) {
               case PCReg:
@@ -329,10 +332,13 @@ ArmStaticInst::printReg(std::ostream &os, RegId reg) const
         ccprintf(os, "f%d", reg.index());
         break;
       case VecRegClass:
-        ccprintf(os, "v%d", reg.index());
+        ccprintf(os, "%s%d", isSveVecReg ? "z" : "v", reg.index());
         break;
       case VecElemClass:
         ccprintf(os, "v%d[%d]", reg.index(), reg.elemIndex());
+        break;
+      case PredRegClass:
+        ccprintf(os, "p%d", reg.index());
         break;
       case MiscRegClass:
         assert(reg.index() < NUM_MISCREGS);
@@ -730,6 +736,53 @@ ArmStaticInst::checkAdvSIMDOrFPEnabled32(ThreadContext *tc,
     return NoFault;
 }
 
+Fault
+ArmStaticInst::sveAccessTrap(ExceptionLevel el) const
+{
+    switch (el) {
+      case EL1:
+        return std::make_shared<SupervisorTrap>(machInst, 0, EC_TRAPPED_SVE);
+      case EL2:
+        return std::make_shared<HypervisorTrap>(machInst, 0, EC_TRAPPED_SVE);
+      case EL3:
+        return std::make_shared<SecureMonitorTrap>(machInst, 0,
+                                                   EC_TRAPPED_SVE);
+
+      default:
+        panic("Illegal EL in sveAccessTrap\n");
+    }
+}
+
+Fault
+ArmStaticInst::checkSveTrap(ThreadContext *tc, CPSR cpsr) const
+{
+    const ExceptionLevel el = (ExceptionLevel) (uint8_t) cpsr.el;
+
+    if (ArmSystem::haveVirtualization(tc) && el <= EL2) {
+        CPTR cptrEnCheck = tc->readMiscReg(MISCREG_CPTR_EL2);
+        if (cptrEnCheck.tz)
+            return sveAccessTrap(EL2);
+    }
+
+    if (ArmSystem::haveSecurity(tc)) {
+        CPTR cptrEnCheck = tc->readMiscReg(MISCREG_CPTR_EL3);
+        if (cptrEnCheck.ez)
+            return sveAccessTrap(EL3);
+    }
+
+    return NoFault;
+}
+
+Fault
+ArmStaticInst::checkSveEnabled(ThreadContext *tc, CPSR cpsr, CPACR cpacr) const
+{
+    const ExceptionLevel el = (ExceptionLevel) (uint8_t) cpsr.el;
+    if ((el == EL0 && cpacr.zen != 0x3) ||
+        (el == EL1 && !(cpacr.zen & 0x1)))
+        return sveAccessTrap(EL1);
+
+    return checkSveTrap(tc, cpsr);
+}
 
 static uint8_t
 getRestoredITBits(ThreadContext *tc, CPSR spsr)
@@ -840,6 +893,40 @@ ArmStaticInst::getPSTATEFromPSR(ThreadContext *tc, CPSR cpsr, CPSR spsr) const
     return new_cpsr;
 }
 
-
+int
+ArmStaticInst::getCurSveVecLenInBits(ThreadContext *tc)
+{
+    uint64_t len = tc->readMiscReg(MISCREG_ZIDR_EL1) & 0xf;
+    if (!FullSystem) {
+        return (len + 1) * 128;
+    }
+    CPSR cpsr = tc->readMiscRegNoEffect(MISCREG_CPSR);
+    ExceptionLevel el = (ExceptionLevel) (uint8_t) cpsr.el;
+    switch (el) {
+      case EL3:
+        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
+        break;
+      case EL2:
+        if (ArmSystem::haveSecurity(tc)) {
+            len = std::min(len,
+                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
+        }
+        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL2) & 0xf);
+        break;
+      case EL1:
+      case EL0:
+        if (ArmSystem::haveSecurity(tc)) {
+            len = std::min(len,
+                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL3) & 0xf);
+        }
+        if (ArmSystem::haveVirtualization(tc)) {
+            len = std::min(len,
+                    tc->readMiscRegNoEffect(MISCREG_ZCR_EL2) & 0xf);
+        }
+        len = std::min(len, tc->readMiscRegNoEffect(MISCREG_ZCR_EL1) & 0xf);
+        break;
+    }
+    return (len + 1) * 128;
+}
 
 }

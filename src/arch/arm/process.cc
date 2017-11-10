@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2012 ARM Limited
+ * Copyright (c) 2010, 2012, 2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -130,6 +130,8 @@ ArmLiveProcess64::initState()
         // Enable the floating point coprocessors.
         cpacr.cp10 = 0x3;
         cpacr.cp11 = 0x3;
+        // Enable SVE.
+        cpacr.zen = 0x3;
         tc->setMiscReg(MISCREG_CPACR_EL1, cpacr);
         // Generically enable floating point support.
         FPEXC fpexc = tc->readMiscReg(MISCREG_FPEXC);

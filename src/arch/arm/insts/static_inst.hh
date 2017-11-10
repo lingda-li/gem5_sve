@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013, 2016 ARM Limited
+ * Copyright (c) 2010-2013, 2016-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -155,7 +155,8 @@ class ArmStaticInst : public StaticInst
 
     /// Print a register name for disassembly given the unique
     /// dependence tag number (FP or int).
-    void printReg(std::ostream &os, RegId reg) const;
+    void printReg(std::ostream &os, RegId reg, bool isSveVecReg = false,
+            uint8_t opWidth = 0) const;
     void printMnemonic(std::ostream &os,
                        const std::string &suffix = "",
                        bool withPred = true,
@@ -405,6 +406,23 @@ class ArmStaticInst : public StaticInst
                                     bool fpexc_check, bool advsimd) const;
 
     /**
+     * Trap an access to SVE registers due to access control bits.
+     *
+     * @param el Target EL for the trap.
+     */
+    Fault sveAccessTrap(ExceptionLevel el) const;
+
+    /**
+     * Check an SVE access against CPTR_EL2 and CPTR_EL3.
+     */
+    Fault checkSveTrap(ThreadContext *tc, CPSR cpsr) const;
+
+    /**
+     * Check an SVE access against CPACR_EL1, CPTR_EL2, and CPTR_EL3.
+     */
+    Fault checkSveEnabled(ThreadContext *tc, CPSR cpsr, CPACR cpacr) const;
+
+    /**
      * Get the new PSTATE from a SPSR register in preparation for an
      * exception return.
      *
@@ -416,6 +434,21 @@ class ArmStaticInst : public StaticInst
   public:
     virtual void
     annotateFault(ArmFault *fault) {}
+
+    static int getCurSveVecLenInBits(ThreadContext *tc);
+
+    static int
+    getCurSveVecLenInQWords(ThreadContext *tc)
+    {
+        return getCurSveVecLenInBits(tc) >> 6;
+    }
+
+    template<typename T>
+    static int
+    getCurSveVecLen(ThreadContext *tc)
+    {
+        return getCurSveVecLenInBits(tc) / (8 * sizeof(T));
+    }
 };
 }
 

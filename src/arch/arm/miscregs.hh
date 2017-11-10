@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016 ARM Limited
+ * Copyright (c) 2010-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -671,9 +671,18 @@ namespace ArmISA
         MISCREG_CP14_UNIMPL,            // 602
         MISCREG_CP15_UNIMPL,            // 603
         MISCREG_A64_UNIMPL,             // 604
-        MISCREG_UNKNOWN,                // 605
 
-        NUM_MISCREGS                    // 606
+        // SVE
+        MISCREG_ID_AA64ZFR0_EL1,        // 605
+        MISCREG_ZIDR_EL1,               // 606
+        MISCREG_ZCR_EL3,                // 607
+        MISCREG_ZCR_EL2,                // 608
+        MISCREG_ZCR_EL12,               // 609
+        MISCREG_ZCR_EL1,                // 610
+
+        MISCREG_UNKNOWN,                // 611
+
+        NUM_MISCREGS                    // 612
     };
 
     enum MiscRegInfo {
@@ -1353,6 +1362,15 @@ namespace ArmISA
         "cp14_unimpl",
         "cp15_unimpl",
         "a64_unimpl",
+
+        // SVE
+        "id_aa64zfr0_el1",
+        "zidr_el1",
+        "zcr_el3",
+        "zcr_el2",
+        "zcr_el12",
+        "zcr_el1",
+
         "unknown"
     };
 
@@ -1412,6 +1430,7 @@ namespace ArmISA
         Bitfield<10> tfp;  // AArch64
         Bitfield<9>  tcp9;
         Bitfield<8>  tcp8;
+        Bitfield<8>  tz;  // SVE
         Bitfield<7>  tcp7;
         Bitfield<6>  tcp6;
         Bitfield<5>  tcp5;
@@ -1586,6 +1605,7 @@ namespace ArmISA
         Bitfield<13, 12> cp6;
         Bitfield<15, 14> cp7;
         Bitfield<17, 16> cp8;
+        Bitfield<17, 16> zen;  // SVE
         Bitfield<19, 18> cp9;
         Bitfield<21, 20> cp10;
         Bitfield<21, 20> fpen;  // AArch64
@@ -1844,9 +1864,14 @@ namespace ArmISA
         Bitfield<20> tta;
         Bitfield<13, 12> res1_13_12_el2;
         Bitfield<10> tfp;
+        Bitfield<8> ez;  // SVE (CPTR_EL3)
+        Bitfield<8> tz;  // SVE (CPTR_EL2)
         Bitfield<9, 0> res1_9_0_el2;
    EndBitUnion(CPTR)
 
+    BitUnion64(ZCR)
+        Bitfield<3, 0> len;
+    EndBitUnion(ZCR)
 
     // Checks read access permissions to coproc. registers
     bool canReadCoprocReg(MiscRegIndex reg, SCR scr, CPSR cpsr,

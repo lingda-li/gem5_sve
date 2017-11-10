@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013, 2015-2016 ARM Limited
+ * Copyright (c) 2010-2013, 2015-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -1348,6 +1348,21 @@ bitset<NUM_MISCREG_INFOS> miscRegInfo[NUM_MISCREGS] = {
     bitset<NUM_MISCREG_INFOS>(string("00000000000000000100")),
     // MISCREG_A64_UNIMPL
     bitset<NUM_MISCREG_INFOS>(string("00000000000000000100")),
+
+    // SVE registers
+    // MISCREG_ID_AA64ZFR0_EL1
+    bitset<NUM_MISCREG_INFOS>(string("01010101010000000001")),
+    // MISCREG_ZIDR_EL1
+    bitset<NUM_MISCREG_INFOS>(string("01010101010000000001")),
+    // MISCREG_ZCR_EL3
+    bitset<NUM_MISCREG_INFOS>(string("11110000000000000001")),
+    // MISCREG_ZCR_EL2
+    bitset<NUM_MISCREG_INFOS>(string("11111100000000000001")),
+    // MISCREG_ZCR_EL12
+    bitset<NUM_MISCREG_INFOS>(string("00000000000000000100")),
+    // MISCREG_ZCR_EL1
+    bitset<NUM_MISCREG_INFOS>(string("11111111110000000001")),
+
     // MISCREG_UNKNOWN
     bitset<NUM_MISCREG_INFOS>(string("00000000000000000001"))
 };
@@ -2628,6 +2643,8 @@ decodeAArch64SysReg(unsigned op0, unsigned op1,
                         return MISCREG_MPIDR_EL1;
                       case 6:
                         return MISCREG_REVIDR_EL1;
+                      case 7:
+                        return MISCREG_ZIDR_EL1;
                     }
                     break;
                   case 1:
@@ -2684,7 +2701,11 @@ decodeAArch64SysReg(unsigned op0, unsigned op1,
                         return MISCREG_ID_AA64PFR0_EL1;
                       case 1:
                         return MISCREG_ID_AA64PFR1_EL1;
-                      case 2 ... 7:
+                      case 2 ... 3:
+                        return MISCREG_RAZ;
+                      case 4:
+                        return MISCREG_ID_AA64ZFR0_EL1;
+                      case 5 ... 7:
                         return MISCREG_RAZ;
                     }
                     break;
@@ -2791,6 +2812,12 @@ decodeAArch64SysReg(unsigned op0, unsigned op1,
                         return MISCREG_CPACR_EL1;
                     }
                     break;
+                  case 2:
+                    switch (op2) {
+                      case 0:
+                        return MISCREG_ZCR_EL1;
+                    }
+                    break;
                 }
                 break;
               case 4:
@@ -2817,6 +2844,22 @@ decodeAArch64SysReg(unsigned op0, unsigned op1,
                         return MISCREG_HACR_EL2;
                     }
                     break;
+                  case 2:
+                    switch (op2) {
+                      case 0:
+                        return MISCREG_ZCR_EL2;
+                    }
+                    break;
+                }
+                break;
+              case 5:
+                switch (crm) {
+                  case 2:
+                    switch (op2) {
+                      case 0:
+                        return MISCREG_ZCR_EL12;
+                    }
+                    break;
                 }
                 break;
               case 6:
@@ -2837,6 +2880,12 @@ decodeAArch64SysReg(unsigned op0, unsigned op1,
                         return MISCREG_SDER32_EL3;
                       case 2:
                         return MISCREG_CPTR_EL3;
+                    }
+                    break;
+                  case 2:
+                    switch (op2) {
+                      case 0:
+                        return MISCREG_ZCR_EL3;
                     }
                     break;
                   case 3:

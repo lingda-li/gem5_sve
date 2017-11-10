@@ -111,8 +111,8 @@ template<> SparcFaultBase::FaultVals
 /* SPARCv8 and SPARCv9 define just fp_disabled trap. SIMD is not contemplated
  * as a separate part. Therefore, we use the same code and TT */
 template<> SparcFaultBase::FaultVals
-    SparcFault<VecDisabled>::vals =
-{"fp_disabled", 0x020, 800, {P, P, H}, FaultStat()};
+    SparcFault<VecDisabled>::vals
+("fp_disabled", 0x020, 800, {P, P, H});
 
 template<> SparcFaultBase::FaultVals
     SparcFault<FpExceptionIEEE754>::vals =
