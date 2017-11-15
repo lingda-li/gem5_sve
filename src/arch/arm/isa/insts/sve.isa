@@ -3509,11 +3509,15 @@ let {{
     sveAssocReducInst('sminv', 'Sminv', 'SimdReduceCmpOp', signedTypes,
                       minvCode, 'std::numeric_limits<Element>::max()')
     # SMULH
-    mulhCode = '''
-    if (sizeof(Element) < 8) {
-        destElem = ((int64_t)srcElem1 * (int64_t)srcElem2)
-                   >> sizeof(Element)*8;
-    } else {
+    exec_output += '''
+    template <class T>
+    T do_mulh(T srcElem1, T srcElem2)
+    {
+        return ((int64_t)srcElem1 * (int64_t)srcElem2) >> sizeof(T) * 8;
+    }
+
+    int64_t do_mulh(int64_t srcElem1, int64_t srcElem2)
+    {
         uint64_t x = (uint64_t) llabs(srcElem1);
         uint64_t y = (uint64_t) llabs(srcElem2);
 
@@ -3537,14 +3541,46 @@ let {{
         if (lo < tmp)
             hi++;
 
-        destElem = hi;
+        uint64_t destElem = hi;
         if ((srcElem1 < 0) ^ (srcElem2 < 0)) {
             uint64_t tmp = lo = ~lo;
             destElem = ~hi;
             if (++lo < tmp)
                 destElem++;
         }
+
+        return destElem;
+    }
+
+    uint64_t do_mulh(uint64_t srcElem1, uint64_t srcElem2)
+    {
+        uint64_t x = srcElem1;
+        uint64_t y = srcElem2;
+
+        uint64_t a = x >> 32;
+        uint64_t b = x & 0xFFFFFFFF;
+        uint64_t c = y >> 32;
+        uint64_t d = y & 0xFFFFFFFF;
+
+        uint64_t hi = a * c;
+        uint64_t lo = b * d;
+
+        hi += (a * d) >> 32;
+        uint64_t tmp = lo;
+        lo += ((a * d) & 0xFFFFFFFF) << 32;
+        if (lo < tmp)
+            hi++;
+
+        hi += (b * c) >> 32;
+        tmp = lo;
+        lo += ((b * c) & 0xFFFFFFFF) << 32;
+        if (lo < tmp)
+            hi++;
+
+        return hi;
     }'''
+    mulhCode = '''
+    destElem = do_mulh(srcElem1, srcElem2);'''
     sveBinInst('smulh', 'Smulh', 'SimdMultOp', signedTypes, mulhCode,
                PredType.MERGE, True)
     # SQADD (immediate)
