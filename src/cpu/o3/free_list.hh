@@ -256,11 +256,12 @@ template<class InputIt>
 inline void
 UnifiedFreeList::addRegs(InputIt first, InputIt last)
 {
-    panic_if((first != last) &&
-            first->classValue() != (last-1)->classValue(),
-            "Attempt to add mixed type regs: %s and %s",
-            first->className(),
-            (last-1)->className());
+    if (first == last)
+        return;
+    panic_if(first->classValue() != (last-1)->classValue(),
+             "Attempt to add mixed type regs: %s and %s",
+             first->className(),
+             (last-1)->className());
     switch (first->classValue()) {
         case IntRegClass:
             intList.addRegs(first, last);
