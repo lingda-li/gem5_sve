@@ -617,12 +617,44 @@ SvePredTestOp::generateDisassembly(Addr pc,
 }
 
 std::string
-SvePredUnaryOp::generateDisassembly(Addr pc,
+SvePredUnaryWImplicitSrcOp::generateDisassembly(Addr pc,
         const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
     printReg(ss, RegId(PredRegClass, dest));
+    return ss.str();
+}
+
+std::string
+SvePredUnaryWImplicitSrcPredOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printReg(ss, RegId(PredRegClass, dest));
+    ccprintf(ss, ", ");
+    printReg(ss, RegId(PredRegClass, gp));
+    ccprintf(ss, "/z, ");
+    return ss.str();
+}
+
+std::string
+SvePredUnaryWImplicitDstOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printReg(ss, RegId(PredRegClass, op1));
+    return ss.str();
+}
+
+std::string
+SveWImplicitSrcDstOp::generateDisassembly(Addr pc,
+        const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
     return ss.str();
 }
 
