@@ -286,7 +286,6 @@ DefaultCommit<Impl>::regStats()
         .init(cpu->numThreads,6)
         .name(name() +  ".sve_refs")
         .desc("Number of SVE memory references committed")
-        .flags(total)
         ;
 }
 
@@ -1401,22 +1400,22 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
 
         if (inst->isLoad()) {
             statComLoads[tid]++;
-        }
-        // SVE memory accesses
-        std::string N = inst->staticInst->getName();
-        if (N == "ld1" || N == "ldff1") {
-            if (inst->isMicroop()) {
-                sveMemInstsCommitted[tid][2]++;
-                if (inst->isLastMicroop())
-                    sveMemInstsCommitted[tid][0]++;
-            } else // FIXME: the following is not accurate
-                sveMemInstsCommitted[tid][4]++;
-        } else if (N == "st1") {
+            if (inst->isSVE()) {
+                // SVE loads
+                if (inst->isMicroop()) {
+                    sveMemInstsCommitted[tid][2]++;
+                    if (inst->isLastMicroop())
+                        sveMemInstsCommitted[tid][0]++;
+                } else // FIXME: the following may not be accurate
+                    sveMemInstsCommitted[tid][4]++;
+            }
+        } else if (inst->isSVE()) {
+            // SVE stores
             if (inst->isMicroop()) {
                 sveMemInstsCommitted[tid][3]++;
                 if (inst->isLastMicroop())
                     sveMemInstsCommitted[tid][1]++;
-            } else // FIXME: the following is not accurate
+            } else // FIXME: the following may not be accurate
                 sveMemInstsCommitted[tid][5]++;
         }
     }

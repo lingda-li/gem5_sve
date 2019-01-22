@@ -117,6 +117,7 @@ class SveContigMemSS : public ArmStaticInst
           memAccessFlags(ArmISA::TLB::AllowUnaligned | ArmISA::TLB::MustBeOne)
     {
         baseIsSP = isSP(_base);
+        setFlag(IsSVE);
     }
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
@@ -143,6 +144,7 @@ class SveContigMemSI : public ArmStaticInst
           memAccessFlags(ArmISA::TLB::AllowUnaligned | ArmISA::TLB::MustBeOne)
     {
         baseIsSP = isSP(_base);
+        setFlag(IsSVE);
     }
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;

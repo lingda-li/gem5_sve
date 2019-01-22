@@ -72,6 +72,7 @@ class SveLdStructSS : public PredMacroOp
             microOps[i] = new MicroopLdMemType<Element>(
                     mnem, machInst, static_cast<IntRegIndex>(INTRLVREG0 + i),
                     _gp, _base, _offset, _numregs, i);
+            microOps[i]->setFlag(IsSVE);
         }
         for (int i = 0; i < numregs; ++i) {
             microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
@@ -149,6 +150,7 @@ class SveStStructSS : public PredMacroOp
             microOps[i + numregs] = new MicroopStMemType<Element>(
                     mnem, machInst, static_cast<IntRegIndex>(INTRLVREG0 + i),
                     _gp, _base, _offset, _numregs, i);
+            microOps[i + numregs]->setFlag(IsSVE);
         }
 
         microOps[0]->setFirstMicroop();
@@ -216,6 +218,7 @@ class SveLdStructSI : public PredMacroOp
             microOps[i] = new MicroopLdMemType<Element>(
                     mnem, machInst, static_cast<IntRegIndex>(INTRLVREG0 + i),
                     _gp, _base, _imm, _numregs, i);
+            microOps[i]->setFlag(IsSVE);
         }
         for (int i = 0; i < numregs; ++i) {
             microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
@@ -294,6 +297,7 @@ class SveStStructSI : public PredMacroOp
             microOps[i + numregs] = new MicroopStMemType<Element>(
                     mnem, machInst, static_cast<IntRegIndex>(INTRLVREG0 + i),
                     _gp, _base, _imm, _numregs, i);
+            microOps[i + numregs]->setFlag(IsSVE);
         }
 
         microOps[0]->setFirstMicroop();
@@ -386,6 +390,7 @@ class SveIndexedMemVI : public PredMacroOp
                 mnem, machInst, __opClass, _dest, _gp,
                 isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
                 num_elems, firstFault);
+            (*uop)->setFlag(IsSVE);
         }
 
         if (firstFault)
@@ -489,6 +494,7 @@ class SveIndexedMemSV : public PredMacroOp
                 mnem, machInst, __opClass, _dest, _gp, _base,
                 isLoad ? (IntRegIndex) VECREG_UREG0 : _offset, _offsetIs32,
                 _offsetIsSigned, _offsetIsScaled, i, num_elems, firstFault);
+            (*uop)->setFlag(IsSVE);
         }
 
         if (firstFault)
