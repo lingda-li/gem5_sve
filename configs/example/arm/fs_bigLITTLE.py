@@ -61,7 +61,8 @@ from devices import AtomicCluster, KvmCluster
 
 default_kernel = 'vmlinux4.3.aarch64'
 default_disk = 'aarch64-ubuntu-trusty-headless.img'
-default_rcs = 'bootscript.rcS'
+#default_rcs = 'boot/bootscript.rcS'
+default_rcs = ''
 
 default_mem_size= "2GB"
 

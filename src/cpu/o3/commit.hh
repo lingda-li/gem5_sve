@@ -516,6 +516,9 @@ class DefaultCommit
     /** Committed instructions by instruction type (OpClass) */
     Stats::Vector2d statCommittedInstType;
 
+    /** Committed SVE memory instructions by instruction type */
+    Stats::Vector2d sveMemInstsCommitted;
+
     /** Number of cycles where the commit bandwidth limit is reached. */
     Stats::Scalar commitEligibleSamples;
 };

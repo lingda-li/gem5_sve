@@ -61,6 +61,7 @@ class StaticInstFlags(Enum):
         'IsVector',         # References Vector regs.
         'IsVectorElem',     # References Vector reg elems.
 
+        'IsSVE',            # SVE instruction.
         'IsMemRef',         # References memory (load, store, or prefetch)
         'IsLoad',           # Reads from memory (load or prefetch).
         'IsStore',          # Writes to memory.
