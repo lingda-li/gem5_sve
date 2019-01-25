@@ -526,6 +526,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool isFloating()     const { return staticInst->isFloating(); }
     bool isVector()       const { return staticInst->isVector(); }
     bool isSVE()          const { return staticInst->isSVE(); }
+    bool isSG()           const { return staticInst->isSG(); }
     bool isControl()      const { return staticInst->isControl(); }
     bool isCall()         const { return staticInst->isCall(); }
     bool isReturn()       const { return staticInst->isReturn(); }

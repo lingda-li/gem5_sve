@@ -133,6 +133,11 @@ class MemCmd
         FlushReq,      //request for a cache flush
         InvalidateReq,   // request for address to be invalidated
         InvalidateResp,
+        // SVE memory accesses, only for status purpose
+        SVEGather,
+        SVEScatter,
+        SVEContigLoad,
+        SVEContigStore,
         NUM_MEM_CMDS
     };
 
@@ -160,6 +165,8 @@ class MemCmd
         IsPrint,        //!< Print state matching address (for debugging)
         IsFlush,        //!< Flush the address from caches
         FromCache,      //!< Request originated from a caching agent
+        IsSVE, // SVE instruction
+        IsSG, // Scatter/gather
         NUM_COMMAND_ATTRIBUTES
     };
 
@@ -203,6 +210,8 @@ class MemCmd
     bool isInvalidate() const      { return testCmdAttrib(IsInvalidate); }
     bool isEviction() const        { return testCmdAttrib(IsEviction); }
     bool isClean() const           { return testCmdAttrib(IsClean); }
+    bool isSVE() const             { return testCmdAttrib(IsSVE); }
+    bool isSG() const              { return testCmdAttrib(IsSG); }
     bool fromCache() const         { return testCmdAttrib(FromCache); }
 
     /**
@@ -829,7 +838,12 @@ class Packet : public Printable
             return MemCmd::LoadLockedReq;
         else if (req->isPrefetch())
             return MemCmd::SoftPFReq;
-        else
+        else if (req->isSVE()) {
+            if (req->isSG())
+                return MemCmd::SVEGather;
+            else
+                return MemCmd::SVEContigLoad;
+        } else
             return MemCmd::ReadReq;
     }
 
@@ -848,6 +862,11 @@ class Packet : public Printable
               MemCmd::InvalidateReq;
         } else if (req->isCacheClean()) {
             return MemCmd::CleanSharedReq;
+        } else if (req->isSVE()) {
+            if (req->isSG())
+                return MemCmd::SVEScatter;
+            else
+                return MemCmd::SVEContigStore;
         } else
             return MemCmd::WriteReq;
     }

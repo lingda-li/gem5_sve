@@ -1402,7 +1402,7 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
             statComLoads[tid]++;
             if (inst->isSVE()) {
                 // SVE loads
-                if (inst->isMicroop()) {
+                if (inst->isSG()) {
                     sveMemInstsCommitted[tid][2]++;
                     if (inst->isLastMicroop())
                         sveMemInstsCommitted[tid][0]++;
@@ -1411,7 +1411,7 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
             }
         } else if (inst->isSVE()) {
             // SVE stores
-            if (inst->isMicroop()) {
+            if (inst->isSG()) {
                 sveMemInstsCommitted[tid][3]++;
                 if (inst->isLastMicroop())
                     sveMemInstsCommitted[tid][1]++;

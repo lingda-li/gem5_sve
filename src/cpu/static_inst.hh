@@ -163,6 +163,7 @@ class StaticInst : public RefCounted, public StaticInstFlags
     bool isPrefetch()     const { return isInstPrefetch() ||
                                          isDataPrefetch(); }
     bool isSVE()          const { return flags[IsSVE]; }
+    bool isSG()           const { return flags[IsSVE] && flags[IsMicroop]; }
 
     bool isInteger()      const { return flags[IsInteger]; }
     bool isFloating()     const { return flags[IsFloating]; }

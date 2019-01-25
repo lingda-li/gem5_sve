@@ -196,6 +196,10 @@ class Request
         /** Bits to define the destination of a request */
         DST_BITS                    = 0x0000003000000000,
 
+        /* SVE bits */
+        SVE                         = 0x0000004000000000,
+        SG                          = 0x0000008000000000,
+
         /**
          * These flags are *not* cleared when a Request object is
          * reused (assigned a new address).
@@ -823,6 +827,8 @@ class Request
     bool isKernel() const { return _flags.isSet(KERNEL); }
     bool isAtomicReturn() const { return _flags.isSet(ATOMIC_RETURN_OP); }
     bool isAtomicNoReturn() const { return _flags.isSet(ATOMIC_NO_RETURN_OP); }
+    bool isSVE() const { return _flags.isSet(SVE); }
+    bool isSG() const { return _flags.isSet(SG); }
 
     bool
     isAtomic() const

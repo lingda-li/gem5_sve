@@ -842,12 +842,21 @@ LSQ<Impl>::SingleDataRequest::initiateTranslation()
         _requests.push_back(new Request(_inst->getASID(), _addr, _size, _flags,
                                         _inst->masterId(), _inst->instAddr(),
                                         _inst->contextId(), _byteEnable));
+        if (_inst->isSVE())
+            _requests.back()->setFlags(Request::SVE);
+        if (_inst->isSG())
+            _requests.back()->setFlags(Request::SG);
     } else {
-        if (isAnyActiveElement(_byteEnable.begin(), _byteEnable.end()))
+        if (isAnyActiveElement(_byteEnable.begin(), _byteEnable.end())) {
             _requests.push_back(new Request(_inst->getASID(), _addr, _size,
                                             _flags, _inst->masterId(),
                                             _inst->instAddr(),
                                             _inst->contextId(), _byteEnable));
+            if (_inst->isSVE())
+                _requests.back()->setFlags(Request::SVE);
+            if (_inst->isSG())
+                _requests.back()->setFlags(Request::SG);
+        }
     }
 
     if (_requests.size() > 0) {
@@ -892,6 +901,10 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
                 _size, _flags, _inst->masterId(),
                 _inst->instAddr(), _inst->contextId(),
                 _byteEnable);
+    if (_inst->isSVE())
+        mainReq->setFlags(Request::SVE);
+    if (_inst->isSG())
+        mainReq->setFlags(Request::SG);
 
     // Paddr is not used in mainReq. However, we will accumulate the flags
     // from the sub requests into mainReq by calling setFlags() in finish().
@@ -905,14 +918,23 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
         _requests.push_back(new Request(_inst->getASID(), base_addr,
                     next_addr - base_addr, _flags, _inst->masterId(),
                     _inst->instAddr(), _inst->contextId()));
+        if (_inst->isSVE())
+            _requests.back()->setFlags(Request::SVE);
+        if (_inst->isSG())
+            _requests.back()->setFlags(Request::SG);
     } else {
         auto it_start = _byteEnable.begin();
         auto it_end = _byteEnable.begin() + (next_addr - base_addr);
-        if (isAnyActiveElement(it_start, it_end))
+        if (isAnyActiveElement(it_start, it_end)) {
             _requests.push_back(new Request(_inst->getASID(), base_addr,
                     next_addr - base_addr, _flags, _inst->masterId(),
                     _inst->instAddr(), _inst->contextId(),
                     std::vector<bool>(it_start, it_end)));
+            if (_inst->isSVE())
+                _requests.back()->setFlags(Request::SVE);
+            if (_inst->isSG())
+                _requests.back()->setFlags(Request::SG);
+        }
     }
     size_so_far = next_addr - base_addr;
 
@@ -923,14 +945,23 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
             _requests.push_back(new Request(_inst->getASID(), base_addr,
                         line_width, _flags, _inst->masterId(),
                         _inst->instAddr(), _inst->contextId()));
+            if (_inst->isSVE())
+                _requests.back()->setFlags(Request::SVE);
+            if (_inst->isSG())
+                _requests.back()->setFlags(Request::SG);
         } else {
             auto it_start = _byteEnable.begin() + size_so_far;
             auto it_end = _byteEnable.begin() + size_so_far + line_width;
-            if (isAnyActiveElement(it_start, it_end))
+            if (isAnyActiveElement(it_start, it_end)) {
                 _requests.push_back(new Request(_inst->getASID(), base_addr,
                         line_width, _flags, _inst->masterId(),
                         _inst->instAddr(), _inst->contextId(),
                         std::vector<bool>(it_start, it_end)));
+                if (_inst->isSVE())
+                    _requests.back()->setFlags(Request::SVE);
+                if (_inst->isSG())
+                    _requests.back()->setFlags(Request::SG);
+            }
         }
         size_so_far += line_width;
         base_addr += line_width;
@@ -942,14 +973,23 @@ LSQ<Impl>::SplitDataRequest::initiateTranslation()
             _requests.push_back(new Request(_inst->getASID(), base_addr,
                         _size - size_so_far, _flags, _inst->masterId(),
                         _inst->instAddr(), _inst->contextId()));
+            if (_inst->isSVE())
+                _requests.back()->setFlags(Request::SVE);
+            if (_inst->isSG())
+                _requests.back()->setFlags(Request::SG);
         } else {
             auto it_start = _byteEnable.begin() + size_so_far;
             auto it_end = _byteEnable.end();
-            if (isAnyActiveElement(it_start, it_end))
+            if (isAnyActiveElement(it_start, it_end)) {
                 _requests.push_back(new Request(_inst->getASID(), base_addr,
                         _size - size_so_far, _flags, _inst->masterId(),
                         _inst->instAddr(), _inst->contextId(),
                         std::vector<bool>(it_start, it_end)));
+                if (_inst->isSVE())
+                    _requests.back()->setFlags(Request::SVE);
+                if (_inst->isSG())
+                    _requests.back()->setFlags(Request::SG);
+            }
         }
     }
 
