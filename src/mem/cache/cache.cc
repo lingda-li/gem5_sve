@@ -1041,6 +1041,8 @@ Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
             (force_clean_rsp ? MemCmd::ReadCleanReq : MemCmd::ReadSharedReq);
     }
     PacketPtr pkt = new Packet(cpu_pkt->req, cmd, blkSize);
+    pkt->cmd.setOriRead(cpu_pkt->cmd.isOriRead());
+    pkt->cmd.setOriWrite(cpu_pkt->cmd.isOriWrite());
 
     // if there are upstream caches that have already marked the
     // packet as having sharers (not passing writable), pass that info

@@ -191,6 +191,8 @@ class MemCmd
     Command cmd;
     bool IsSVE = false;
     bool IsSG = false;
+    bool IsOriR;
+    bool IsOriW;
 
     bool
     testCmdAttrib(MemCmd::Attribute attrib) const
@@ -199,24 +201,7 @@ class MemCmd
     }
 
     /// Convert to the actual command for status purpose
-    Command toActualCmd() const {
-        if (cmd == ReadReq) {
-            if (IsSVE) {
-                if (IsSG)
-                    return SVEGather;
-                else
-                    return SVEContigLoad;
-            }
-        } else if (cmd == WriteReq) {
-            if (IsSVE) {
-                if (IsSG)
-                    return SVEScatter;
-                else
-                    return SVEContigStore;
-            }
-        }
-        return cmd;
-    }
+    Command toActualCmd() const;
 
   public:
 
@@ -236,6 +221,10 @@ class MemCmd
     void setSG()                   { IsSG = true; }
     bool isSVE() const             { return IsSVE; }
     bool isSG() const              { return IsSG; }
+    void setOriRead(bool B)        { IsOriR = B; }
+    void setOriWrite(bool B)       { IsOriW = B; }
+    bool isOriRead() const         { return IsOriR; }
+    bool isOriWrite() const        { return IsOriW; }
 
     /**
      * A writeback is an eviction that carries data.
@@ -794,6 +783,12 @@ class Packet : public Printable
             size = req->getSize();
             flags.set(VALID_SIZE);
         }
+        if (req->isSVE())
+            cmd.setSVE();
+        if (req->isSG())
+            cmd.setSG();
+        cmd.setOriRead(isRead());
+        cmd.setOriWrite(isWrite());
     }
 
     /**
@@ -813,6 +808,12 @@ class Packet : public Printable
         }
         size = _blkSize;
         flags.set(VALID_SIZE);
+        if (req->isSVE())
+            cmd.setSVE();
+        if (req->isSG())
+            cmd.setSG();
+        cmd.setOriRead(isRead());
+        cmd.setOriWrite(isWrite());
     }
 
     /**
@@ -852,6 +853,12 @@ class Packet : public Printable
                 allocate();
             }
         }
+        if (req->isSVE())
+            cmd.setSVE();
+        if (req->isSG())
+            cmd.setSG();
+        cmd.setOriRead(pkt->cmd.isOriRead());
+        cmd.setOriWrite(pkt->cmd.isOriWrite());
     }
 
     /**
@@ -894,23 +901,13 @@ class Packet : public Printable
     static PacketPtr
     createRead(const RequestPtr req)
     {
-        auto *P = new Packet(req, makeReadCmd(req));
-        if (req->isSVE())
-            P->cmd.setSVE();
-        if (req->isSG())
-            P->cmd.setSG();
-        return P;
+        return new Packet(req, makeReadCmd(req));
     }
 
     static PacketPtr
     createWrite(const RequestPtr req)
     {
-        auto *P = new Packet(req, makeWriteCmd(req));
-        if (req->isSVE())
-            P->cmd.setSVE();
-        if (req->isSG())
-            P->cmd.setSG();
-        return P;
+        return new Packet(req, makeWriteCmd(req));
     }
 
     /**
