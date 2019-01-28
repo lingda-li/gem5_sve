@@ -165,8 +165,6 @@ class MemCmd
         IsPrint,        //!< Print state matching address (for debugging)
         IsFlush,        //!< Flush the address from caches
         FromCache,      //!< Request originated from a caching agent
-        IsSVE, // SVE instruction
-        IsSG, // Scatter/gather
         NUM_COMMAND_ATTRIBUTES
     };
 
@@ -191,11 +189,33 @@ class MemCmd
   private:
 
     Command cmd;
+    bool IsSVE = false;
+    bool IsSG = false;
 
     bool
     testCmdAttrib(MemCmd::Attribute attrib) const
     {
         return commandInfo[cmd].attributes[attrib] != 0;
+    }
+
+    /// Convert to the actual command for status purpose
+    Command toActualCmd() const {
+        if (cmd == ReadReq) {
+            if (IsSVE) {
+                if (IsSG)
+                    return SVEGather;
+                else
+                    return SVEContigLoad;
+            }
+        } else if (cmd == WriteReq) {
+            if (IsSVE) {
+                if (IsSG)
+                    return SVEScatter;
+                else
+                    return SVEContigStore;
+            }
+        }
+        return cmd;
     }
 
   public:
@@ -210,9 +230,12 @@ class MemCmd
     bool isInvalidate() const      { return testCmdAttrib(IsInvalidate); }
     bool isEviction() const        { return testCmdAttrib(IsEviction); }
     bool isClean() const           { return testCmdAttrib(IsClean); }
-    bool isSVE() const             { return testCmdAttrib(IsSVE); }
-    bool isSG() const              { return testCmdAttrib(IsSG); }
     bool fromCache() const         { return testCmdAttrib(FromCache); }
+
+    void setSVE()                  { IsSVE = true; }
+    void setSG()                   { IsSG = true; }
+    bool isSVE() const             { return IsSVE; }
+    bool isSG() const              { return IsSG; }
 
     /**
      * A writeback is an eviction that carries data.
@@ -242,8 +265,11 @@ class MemCmd
     }
 
     /// Return the string to a cmd given by idx.
-    const std::string &toString() const { return commandInfo[cmd].str; }
-    int toInt() const { return (int)cmd; }
+    const std::string &toString() const {
+        return commandInfo[toActualCmd()].str;
+    }
+    int toInt() const { return (int)toActualCmd(); }
+    int toOriInt() const { return (int)cmd; }
 
     MemCmd(Command _cmd) : cmd(_cmd) { }
     MemCmd(int _cmd) : cmd((Command)_cmd) { }
@@ -838,12 +864,7 @@ class Packet : public Printable
             return MemCmd::LoadLockedReq;
         else if (req->isPrefetch())
             return MemCmd::SoftPFReq;
-        else if (req->isSVE()) {
-            if (req->isSG())
-                return MemCmd::SVEGather;
-            else
-                return MemCmd::SVEContigLoad;
-        } else
+        else
             return MemCmd::ReadReq;
     }
 
@@ -860,14 +881,9 @@ class Packet : public Printable
         else if (req->isCacheInvalidate()) {
           return req->isCacheClean() ? MemCmd::CleanInvalidReq :
               MemCmd::InvalidateReq;
-        } else if (req->isCacheClean()) {
+        } else if (req->isCacheClean())
             return MemCmd::CleanSharedReq;
-        } else if (req->isSVE()) {
-            if (req->isSG())
-                return MemCmd::SVEScatter;
-            else
-                return MemCmd::SVEContigStore;
-        } else
+        else
             return MemCmd::WriteReq;
     }
 
@@ -878,13 +894,23 @@ class Packet : public Printable
     static PacketPtr
     createRead(const RequestPtr req)
     {
-        return new Packet(req, makeReadCmd(req));
+        auto *P = new Packet(req, makeReadCmd(req));
+        if (req->isSVE())
+            P->cmd.setSVE();
+        if (req->isSG())
+            P->cmd.setSG();
+        return P;
     }
 
     static PacketPtr
     createWrite(const RequestPtr req)
     {
-        return new Packet(req, makeWriteCmd(req));
+        auto *P = new Packet(req, makeWriteCmd(req));
+        if (req->isSVE())
+            P->cmd.setSVE();
+        if (req->isSG())
+            P->cmd.setSG();
+        return P;
     }
 
     /**

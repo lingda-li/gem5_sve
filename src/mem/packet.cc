@@ -221,17 +221,15 @@ MemCmd::commandInfo[] =
     { SET2(IsInvalidate, IsResponse),
       InvalidCmd, "InvalidateResp" },
     /* SVE Gather */
-    { SET5(IsRead, IsRequest, NeedsResponse, IsSVE, IsSG), ReadResp,
-      "SVEGatherReq" },
+    { SET3(IsRead, IsRequest, NeedsResponse), ReadResp, "SVEGatherReq" },
     /* SVE Scatter */
-    { SET7(IsWrite, NeedsWritable, IsRequest, NeedsResponse, HasData, IsSVE,
-           IsSG), WriteResp, "SVEScatterReq" },
+    { SET5(IsWrite, NeedsWritable, IsRequest, NeedsResponse, HasData),
+      WriteResp, "SVEScatterReq" },
     /* SVE Contig Load */
-    { SET4(IsRead, IsRequest, NeedsResponse, IsSVE), ReadResp,
-      "SVEContigLoadReq" },
+    { SET3(IsRead, IsRequest, NeedsResponse), ReadResp, "SVEContigLoadReq" },
     /* SVE Contig Store */
-    { SET6(IsWrite, NeedsWritable, IsRequest, NeedsResponse, HasData, IsSVE),
-            WriteResp, "SVEContigStoreReq" }
+    { SET5(IsWrite, NeedsWritable, IsRequest, NeedsResponse, HasData),
+      WriteResp, "SVEContigStoreReq" },
 };
 
 bool
