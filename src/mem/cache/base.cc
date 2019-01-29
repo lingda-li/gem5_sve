@@ -203,7 +203,10 @@ BaseCache::regStats()
 // "non-demand"
 #define SUM_DEMAND(s) \
     (s[MemCmd::ReadReq] + s[MemCmd::WriteReq] + s[MemCmd::WriteLineReq] + \
-     s[MemCmd::ReadExReq] + s[MemCmd::ReadCleanReq] + s[MemCmd::ReadSharedReq])
+     s[MemCmd::ReadExReq] + s[MemCmd::ReadCleanReq] + \
+     s[MemCmd::ReadSharedReq] + s[MemCmd::SVEGather] + \
+     s[MemCmd::SVEScatter] + s[MemCmd::SVEContigLoad] + \
+     s[MemCmd::SVEContigStore])
 
 // should writebacks be included here?  prior code was inconsistent...
 #define SUM_NON_DEMAND(s) \
