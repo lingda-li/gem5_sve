@@ -351,8 +351,8 @@ if main['GCC'] or main['CLANG']:
                          '-Wno-sign-compare', '-Wno-unused-parameter'])
     # We always compile using C++11
     main.Append(CXXFLAGS=['-std=c++11'])
-    main.Append(CXXFLAGS=['-Wno-implicit-fallthrough'])
-    main.Append(CXXFLAGS=['-Wno-error=bool-operation'])
+    #main.Append(CXXFLAGS=['-Wno-implicit-fallthrough'])
+    #main.Append(CXXFLAGS=['-Wno-error=bool-operation'])
     main.Append(CXXFLAGS=['-Wno-error=maybe-uninitialized'])
     if sys.platform.startswith('freebsd'):
         main.Append(CCFLAGS=['-I/usr/local/include'])
