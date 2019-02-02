@@ -490,6 +490,8 @@ class DefaultCommit
     Stats::Scalar branchMispredicts;
     /** Distribution of the number of committed instructions each cycle. */
     Stats::Distribution numCommittedDist;
+    /** Stat for the reason why no instruction is committed. */
+    Stats::Vector statNoComReason;
 
     /** Total number of instructions committed. */
     Stats::Vector instsCommitted;

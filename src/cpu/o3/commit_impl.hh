@@ -192,6 +192,12 @@ DefaultCommit<Impl>::regStats()
         .flags(Stats::pdf)
         ;
 
+    statNoComReason
+        .init(7)
+        .name(name() +  ".no_commit_per_cycle")
+        .desc("Number of cycles where no instruction committed")
+        ;
+
     instsCommitted
         .init(cpu->numThreads)
         .name(name() + ".committedInsts")
@@ -1134,6 +1140,36 @@ DefaultCommit<Impl>::commitInsts()
         }
     }
 
+    if (num_committed == 0) {
+        ThreadID tid = getCommittingThread();
+        if (tid != -1) {
+            if (head_inst = rob->readHeadInst(tid)) {
+                if (head_inst->isMemRef()) {
+                    if (head_inst->isLoad()) {
+                        statNoComReason[0]++;
+                        if (head_inst->isSVE()) {
+                            // SVE loads
+                            if (head_inst->isSG())
+                                statNoComReason[1]++;
+                            else
+                                statNoComReason[2]++;
+                        }
+                    } else {
+                        statNoComReason[3]++;
+                        if (head_inst->isSVE()) {
+                            // SVE stores
+                            if (head_inst->isSG())
+                                statNoComReason[4]++;
+                            else
+                                statNoComReason[5]++;
+                        }
+                    }
+                }
+                statNoComReason[6]++;
+            }
+        }
+    }
+
     DPRINTF(CommitRate, "%i\n", num_committed);
     numCommittedDist.sample(num_committed);
 
@@ -1406,7 +1442,7 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
                     sveMemInstsCommitted[tid][2]++;
                     if (inst->isLastMicroop())
                         sveMemInstsCommitted[tid][0]++;
-                } else // FIXME: the following may not be accurate
+                } else
                     sveMemInstsCommitted[tid][4]++;
             }
         } else if (inst->isSVE()) {
@@ -1415,7 +1451,7 @@ DefaultCommit<Impl>::updateComInstStats(const DynInstPtr &inst)
                 sveMemInstsCommitted[tid][3]++;
                 if (inst->isLastMicroop())
                     sveMemInstsCommitted[tid][1]++;
-            } else // FIXME: the following may not be accurate
+            } else
                 sveMemInstsCommitted[tid][5]++;
         }
     }
