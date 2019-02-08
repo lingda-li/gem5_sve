@@ -573,6 +573,8 @@ class Packet : public Printable
     bool isPrint() const             { return cmd.isPrint(); }
     bool isFlush() const             { return cmd.isFlush(); }
 
+    bool isBypass() const;
+
     //@{
     /// Snoop flags
     /**

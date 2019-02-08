@@ -983,7 +983,7 @@ Cache::recvTimingReq(PacketPtr pkt)
 
 PacketPtr
 Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
-                        bool needsWritable) const
+                        bool needsWritable)
 {
     // should never see evictions here
     assert(!cpu_pkt->isEviction());
@@ -992,9 +992,12 @@ Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
 
     if (cpu_pkt->req->isUncacheable() ||
         (!blkValid && cpu_pkt->isUpgrade()) ||
+        cpu_pkt->isBypass() ||
         cpu_pkt->cmd == MemCmd::InvalidateReq || cpu_pkt->isClean()) {
         // uncacheable requests and upgrades from upper-level caches
         // that missed completely just go through as is
+        if (cpu_pkt->isBypass())
+            bypasses++;
         return nullptr;
     }
 
@@ -1531,6 +1534,9 @@ Cache::recvTimingResp(PacketPtr pkt)
 
                     tgt_pkt->setData(pkt->getConstPtr<uint8_t>());
                 }
+                assert(tgt_pkt->req->masterId() < system->maxMasters());
+                missLatency[tgt_pkt->cmdToIndex()][tgt_pkt->req->masterId()] +=
+                    completion_time - target.recvTime;
             }
             tgt_pkt->makeTimingResponse();
             // if this packet is an error copy that to the new packet

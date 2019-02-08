@@ -500,7 +500,7 @@ class Cache : public BaseCache
      * current request in cpu_pkt should just be forwarded on.
      */
     PacketPtr createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
-                               bool needsWritable) const;
+                               bool needsWritable);
 
     /**
      * Return the next queue entry to service, either a pending miss

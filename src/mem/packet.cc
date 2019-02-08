@@ -263,6 +263,12 @@ MemCmd::Command MemCmd::toActualCmd() const {
     return cmd;
 }
 
+bool Packet::isBypass() const {
+    if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
+        return true;
+    return false;
+}
+
 bool
 Packet::checkFunctional(Printable *obj, Addr addr, bool is_secure, int size,
                         uint8_t *_data)

@@ -448,6 +448,12 @@ BaseCache::regStats()
         .flags(nozero)
         ;
 
+    bypasses
+        .name(name() + ".bypasses")
+        .desc("number of cache bypasses")
+        .flags(nozero)
+        ;
+
     writebacks
         .init(system->maxMasters())
         .name(name() + ".writebacks")
