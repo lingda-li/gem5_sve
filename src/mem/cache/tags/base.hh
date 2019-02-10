@@ -121,6 +121,9 @@ class BaseTags : public ClockedObject
      */
     Stats::Formula avgRefs;
 
+    /** The distribution of number of bytes accessed. */
+    Stats::Vector byteAccessDis;
+
     /** The cycle that the warmup percentage was hit. 0 on failure. */
     Stats::Scalar warmupCycle;
 
@@ -249,7 +252,8 @@ class BaseTags : public ClockedObject
         occupancies[blk->srcMasterId]--;
     }
 
-    virtual CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat) = 0;
+    virtual CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                                  Cycles &lat) = 0;
 
     virtual Addr extractTag(Addr addr) const = 0;
 

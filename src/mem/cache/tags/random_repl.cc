@@ -59,9 +59,9 @@ RandomRepl::RandomRepl(const Params *p)
 }
 
 CacheBlk*
-RandomRepl::accessBlock(Addr addr, bool is_secure, Cycles &lat)
+RandomRepl::accessBlock(PacketPtr pkt, Addr addr, bool is_secure, Cycles &lat)
 {
-    return BaseSetAssoc::accessBlock(addr, is_secure, lat);
+    return BaseSetAssoc::accessBlock(pkt, addr, is_secure, lat);
 }
 
 CacheBlk*

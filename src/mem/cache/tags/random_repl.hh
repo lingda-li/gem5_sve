@@ -70,7 +70,8 @@ class RandomRepl : public BaseSetAssoc
      */
     ~RandomRepl() {}
 
-    CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat);
+    CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                          Cycles &lat);
     CacheBlk* findVictim(Addr addr);
     void insertBlock(PacketPtr pkt, BlkType *blk);
 };

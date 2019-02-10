@@ -77,6 +77,8 @@ BaseSetAssoc::BaseSetAssoc(const Params *p)
     setMask = numSets - 1;
     tagShift = setShift + floorLog2(numSets);
 
+    // for byte access vec to work correctly
+    assert(blkSize <= 64);
     unsigned blkIndex = 0;       // index into blks array
     for (unsigned i = 0; i < numSets; ++i) {
         sets[i].assoc = assoc;
@@ -147,6 +149,12 @@ BaseSetAssoc::cleanupRefs()
         if (blks[i].isValid()) {
             totalRefs += blks[i].refCount;
             ++sampledRefs;
+
+            // Count number of bytes accessed
+            unsigned count = 0;
+            for (unsigned i = 0; i < blkSize; i++)
+                count += (blks[i].byteAccessVec >> i) & 1;
+            byteAccessDis[count]++;
         }
     }
 }

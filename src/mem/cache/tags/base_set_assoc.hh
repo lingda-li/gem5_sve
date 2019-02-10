@@ -142,40 +142,45 @@ public:
      * @param lat The access latency.
      * @return Pointer to the cache block if found.
      */
-    CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat) override
-    {
-        BlkType *blk = findBlock(addr, is_secure);
+    CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                          Cycles &lat) override {
+      BlkType *blk = findBlock(addr, is_secure);
 
-        // Access all tags in parallel, hence one in each way.  The data side
-        // either accesses all blocks in parallel, or one block sequentially on
-        // a hit.  Sequential access with a miss doesn't access data.
-        tagAccesses += allocAssoc;
-        if (sequentialAccess) {
-            if (blk != nullptr) {
-                dataAccesses += 1;
-            }
-        } else {
-            dataAccesses += allocAssoc;
-        }
-
+      // Access all tags in parallel, hence one in each way.  The data side
+      // either accesses all blocks in parallel, or one block sequentially on
+      // a hit.  Sequential access with a miss doesn't access data.
+      tagAccesses += allocAssoc;
+      if (sequentialAccess) {
         if (blk != nullptr) {
-            // If a cache hit
-            lat = accessLatency;
-            // Check if the block to be accessed is available. If not,
-            // apply the accessLatency on top of block->whenReady.
-            if (blk->whenReady > curTick() &&
-                cache->ticksToCycles(blk->whenReady - curTick()) >
-                accessLatency) {
-                lat = cache->ticksToCycles(blk->whenReady - curTick()) +
-                accessLatency;
-            }
-            blk->refCount += 1;
-        } else {
-            // If a cache miss
-            lat = lookupLatency;
+          dataAccesses += 1;
         }
+      } else {
+        dataAccesses += allocAssoc;
+      }
 
-        return blk;
+      if (blk != nullptr) {
+        // If a cache hit
+        lat = accessLatency;
+        // Check if the block to be accessed is available. If not,
+        // apply the accessLatency on top of block->whenReady.
+        if (blk->whenReady > curTick() &&
+            cache->ticksToCycles(blk->whenReady - curTick()) > accessLatency) {
+          lat =
+              cache->ticksToCycles(blk->whenReady - curTick()) + accessLatency;
+        }
+        blk->refCount += 1;
+        for (Addr O = pkt->getOffset(blkSize),
+                  OE = pkt->getSize() + pkt->getOffset(blkSize);
+             O < OE; O++) {
+            assert(O < blkSize);
+            blk->byteAccessVec |= 1 << O;
+        }
+      } else {
+        // If a cache miss
+        lat = lookupLatency;
+      }
+
+      return blk;
     }
 
     /**
@@ -236,6 +241,12 @@ public:
              replacements[0]++;
              totalRefs += blk->refCount;
              ++sampledRefs;
+
+             // Count number of bytes accessed
+             unsigned count = 0;
+             for (unsigned i = 0; i < blkSize; i++)
+                count += (blk->byteAccessVec >> i) & 1;
+             byteAccessDis[count]++;
 
              invalidate(blk);
              blk->invalidate();

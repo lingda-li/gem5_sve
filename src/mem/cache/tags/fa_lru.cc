@@ -168,13 +168,13 @@ FALRU::invalidate(CacheBlk *blk)
 }
 
 CacheBlk*
-FALRU::accessBlock(Addr addr, bool is_secure, Cycles &lat)
+FALRU::accessBlock(PacketPtr pkt, Addr addr, bool is_secure, Cycles &lat)
 {
-    return accessBlock(addr, is_secure, lat, 0);
+    return accessBlock(pkt, addr, is_secure, lat, 0);
 }
 
-CacheBlk*
-FALRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int *inCache)
+CacheBlk* FALRU::accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                             Cycles &lat, int *inCache)
 {
     accesses++;
     int tmp_in_cache = 0;

@@ -186,13 +186,14 @@ public:
      * @param inCache The FALRUBlk::inCache flags.
      * @return Pointer to the cache block.
      */
-    CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat,
-                          int *inCache);
+    CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                          Cycles &lat, int *inCache);
 
     /**
      * Just a wrapper of above function to conform with the base interface.
      */
-    CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat) override;
+    CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                          Cycles &lat) override;
 
     /**
      * Find the block in the cache, do not update the replacement data.

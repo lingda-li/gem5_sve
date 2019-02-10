@@ -110,6 +110,13 @@ BaseTags::regStats()
 
     avgRefs = totalRefs/sampledRefs;
 
+    byteAccessDis
+        .init(blkSize+1)
+        .name(name() + ".blk_accessed_bytes")
+        .desc("number of blocks with N bytes accessed.")
+        .flags(total)
+        ;
+
     warmupCycle
         .name(name() + ".warmup_cycle")
         .desc("Cycle when the warmup percentage was hit.")

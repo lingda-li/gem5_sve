@@ -114,6 +114,9 @@ class CacheBlk
     /** Number of references to this block since it was brought in. */
     unsigned refCount;
 
+    /** Number of references to this block since it was brought in. */
+    uint64_t byteAccessVec;
+
     /** holds the source requestor ID for this block. */
     int srcMasterId;
 
@@ -214,6 +217,7 @@ class CacheBlk
         whenReady = MaxTick;
         isTouched = false;
         refCount = 0;
+        byteAccessVec = 0;
         srcMasterId = Request::invldMasterId;
         tickInserted = MaxTick;
         lockList.clear();

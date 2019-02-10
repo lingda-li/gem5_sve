@@ -69,7 +69,8 @@ class LRU : public BaseSetAssoc
      */
     ~LRU() {}
 
-    CacheBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat) override;
+    CacheBlk *accessBlock(PacketPtr pkt, Addr addr, bool is_secure,
+                          Cycles &lat) override;
     CacheBlk* findVictim(Addr addr) override;
     void insertBlock(PacketPtr pkt, BlkType *blk) override;
     void invalidate(CacheBlk *blk) override;
