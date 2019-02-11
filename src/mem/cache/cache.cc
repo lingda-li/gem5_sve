@@ -898,7 +898,7 @@ Cache::recvTimingReq(PacketPtr pkt)
                     // port and also takes into account the additional
                     // delay of the xbar.
                     mshr->allocateTarget(pkt, forward_time, order++,
-                                         allocOnFill(pkt->cmd));
+                                         allocOnFill(pkt));
                     if (mshr->getNumTargets() == numTarget) {
                         noTargetMSHR = mshr;
                         setBlocked(Blocked_NoTargets);
@@ -992,12 +992,9 @@ Cache::createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
 
     if (cpu_pkt->req->isUncacheable() ||
         (!blkValid && cpu_pkt->isUpgrade()) ||
-        cpu_pkt->isBypass() ||
         cpu_pkt->cmd == MemCmd::InvalidateReq || cpu_pkt->isClean()) {
         // uncacheable requests and upgrades from upper-level caches
         // that missed completely just go through as is
-        if (cpu_pkt->isBypass())
-            bypasses++;
         return nullptr;
     }
 
@@ -1905,6 +1902,9 @@ Cache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
         // need to do a replacement if allocating, otherwise we stick
         // with the temporary storage
         blk = allocate ? allocateBlock(addr, is_secure, writebacks) : nullptr;
+
+        if (!allocate && clusivity != Enums::mostly_excl)
+            bypasses++;
 
         if (blk == nullptr) {
             // No replaceable block or a mostly exclusive

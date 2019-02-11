@@ -347,6 +347,19 @@ class Cache : public BaseCache
             cmd.isLLSC();
     }
 
+    inline bool allocOnFill(PacketPtr pkt) const override
+    {
+        if (pkt->isBypass())
+            return false;
+        MemCmd cmd = pkt->cmd;
+        return clusivity == Enums::mostly_incl ||
+            cmd == MemCmd::WriteLineReq ||
+            cmd == MemCmd::ReadReq ||
+            cmd == MemCmd::WriteReq ||
+            cmd.isPrefetch() ||
+            cmd.isLLSC();
+    }
+
     /**
      * Performs the access specified by the request.
      * @param pkt The request to perform.

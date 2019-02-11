@@ -225,6 +225,9 @@ class BaseCache : public MemObject
      */
     virtual bool allocOnFill(MemCmd cmd) const = 0;
 
+    // For bypass purpose
+    virtual bool allocOnFill(PacketPtr pkt) const = 0;
+
     /**
      * Write back dirty blocks in the cache using functional accesses.
      */
@@ -492,7 +495,7 @@ class BaseCache : public MemObject
     {
         MSHR *mshr = mshrQueue.allocate(pkt->getBlockAddr(blkSize), blkSize,
                                         pkt, time, order++,
-                                        allocOnFill(pkt->cmd));
+                                        allocOnFill(pkt));
 
         if (mshrQueue.isFull()) {
             setBlocked((BlockedCause)MSHRQueue_MSHRs);

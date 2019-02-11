@@ -264,8 +264,8 @@ MemCmd::Command MemCmd::toActualCmd() const {
 }
 
 bool Packet::isBypass() const {
-    //if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
-    //    return true;
+    if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
+        return true;
     return false;
 }
 
