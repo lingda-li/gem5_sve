@@ -46,6 +46,7 @@ DebugFlag('CacheRepl')
 DebugFlag('CacheTags')
 DebugFlag('CacheVerbose')
 DebugFlag('HWPrefetch')
+DebugFlag('CacheLLD')
 
 # CacheTags is so outrageously verbose, printing the cache's entire tag
 # array on each timing access, that you should probably have to ask for

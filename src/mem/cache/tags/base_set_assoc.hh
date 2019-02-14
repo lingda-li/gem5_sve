@@ -53,6 +53,7 @@
 #include <memory>
 #include <vector>
 
+#include "debug/CacheLLD.hh"
 #include "mem/cache/base.hh"
 #include "mem/cache/blk.hh"
 #include "mem/cache/tags/base.hh"
@@ -241,6 +242,8 @@ public:
              replacements[0]++;
              totalRefs += blk->refCount;
              ++sampledRefs;
+             DPRINTF(CacheLLD, "replace %x for %s\n", regenerateBlkAddr(blk),
+                     pkt->print());
 
              // Count number of bytes accessed
              unsigned count = 0;
