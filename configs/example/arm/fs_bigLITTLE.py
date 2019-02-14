@@ -187,6 +187,8 @@ def addOptions(parser):
     parser.add_argument("--arm-sve-vl", default=2, type=int,
                         choices=[1, 2, 4, 8, 16],
                         help="SVE vector length in quadwords (128-bit)")
+    parser.add_argument("--maxinsts", type=int, default=0, help="Total " \
+                        "number of instructions to simulate")
 
     return parser
 
@@ -230,6 +232,10 @@ def build(options):
                                       options.big_cpu_clock)
         system.mem_mode = system.bigCluster.memoryMode()
         all_cpus += system.bigCluster.cpus
+        if options.maxinsts:
+            for i in xrange(options.big_cpus):
+                system.bigCluster.cpus[i].max_insts_all_threads = \
+                    options.maxinsts
 
     # little cluster
     if options.little_cpus > 0:
@@ -237,6 +243,10 @@ def build(options):
                                             options.little_cpu_clock)
         system.mem_mode = system.littleCluster.memoryMode()
         all_cpus += system.littleCluster.cpus
+        if options.maxinsts:
+            for i in xrange(options.little_cpus):
+                system.littleCluster.cpus[i].max_insts_all_threads = \
+                    options.maxinsts
 
     # Figure out the memory mode
     if options.big_cpus > 0 and options.little_cpus > 0 and \
