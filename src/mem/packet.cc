@@ -264,9 +264,13 @@ MemCmd::Command MemCmd::toActualCmd() const {
 }
 
 bool Packet::isBypass() const {
-    if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
-        return true;
     return false;
+    // Requests from CPU
+    if (cmd == MemCmd::ReadReq || cmd == MemCmd::WriteReq)
+        return false;
+    // SVE gather requests
+    else if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
+        return true;
 }
 
 bool
@@ -414,14 +418,15 @@ Packet::popSenderState()
 void
 Packet::print(ostream &o, const int verbosity, const string &prefix) const
 {
-    ccprintf(o, "%s%s [%x:%x]%s%s%s%s%s%s", prefix, cmdString(),
+    ccprintf(o, "%s%s [%x:%x]%s%s%s%s%s%s 0x%x", prefix, cmdString(),
              getAddr(), getAddr() + getSize() - 1,
              req->isSecure() ? " (s)" : "",
              req->isInstFetch() ? " IF" : "",
              req->isUncacheable() ? " UC" : "",
              isExpressSnoop() ? " ES" : "",
              req->isToPOC() ? " PoC" : "",
-             req->isToPOU() ? " PoU" : "");
+             req->isToPOU() ? " PoU" : "",
+             req->getFlags());
 }
 
 std::string

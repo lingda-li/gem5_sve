@@ -99,6 +99,7 @@ LSQ<Impl>::LSQ(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params)
         thread[tid].init(cpu, iew_ptr, params, this, tid);
         thread[tid].setDcachePort(&cpu_ptr->getDataPort());
     }
+    lineWidth = params->system->cacheLineSize() << 3;
 }
 
 
@@ -689,6 +690,7 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
     inst->setRequest();
     ThreadID tid = cpu->contextToThread(inst->contextId());
 
+    assert(lineWidth == cpu->cacheLineSize() << 3);
     bool needs_burst = transferNeedsBurst(addr, size, lineWidth >> 3);
     LSQRequest* req = nullptr;
 

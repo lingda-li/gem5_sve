@@ -165,6 +165,7 @@ LSQUnit<Impl>::init(O3CPU *cpu_ptr, IEW *iew_ptr, DerivO3CPUParams *params,
     depCheckShift = params->LSQDepCheckShift;
     checkLoads = params->LSQCheckLoads;
     needsTSO = params->needsTSO;
+    lineWidth = params->system->cacheLineSize() << 3;
 
     resetState();
 }

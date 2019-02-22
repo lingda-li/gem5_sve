@@ -81,10 +81,7 @@ struct DerivO3CPUParams;
 template <class Impl>
 class LSQUnit {
   public:
-    /* TODO: This is the width of the bus between the LSQ Unit and the data
-     * cache. It is fixed to 512, but once the model is working, this should
-     * be a parametre of the lsq_unit / data cache */
-    static constexpr auto lineWidth = 512;
+    unsigned int lineWidth;
 
     static constexpr auto MaxDataBytes = MaxVecRegLenInBytes;
 
@@ -636,10 +633,12 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
             load_inst->seqNum, load_inst->pcState());
     }
 
-    DPRINTF(LSQUnit, "Read called, load idx: %i, store idx: %i, "
-            "storeHead: %i addr: %#x%s\n",
+    DPRINTF(LSQUnit,
+            "Read called, load idx: %i, store idx: %i, "
+            "storeHead: %i addr: %#x%s size: %d\n",
             load_idx - 1, load_inst->sqIt._idx, storeQueue.head() - 1,
-            req->mainRequest()->getPaddr(), req->isSplit() ? " split" : "");
+            req->mainRequest()->getPaddr(), req->isSplit() ? " split" : "",
+            req->_size);
 
     if (req->mainRequest()->isLLSC()) {
         // Disable recording the result temporarily.  Writing to misc
