@@ -189,6 +189,8 @@ def addOptions(parser):
                         help="SVE vector length in quadwords (128-bit)")
     parser.add_argument("--maxinsts", type=int, default=0, help="Total " \
                         "number of instructions to simulate")
+    parser.add_argument("--cacheline_size", type=int, default=64,
+                        choices=[16, 32, 64, 128])
 
     return parser
 
@@ -253,6 +255,9 @@ def build(options):
        system.littleCluster.memoryMode() != system.littleCluster.memoryMode():
         m5.util.panic("Memory mode missmatch among CPU clusters")
 
+
+    # Set the cache line size of the system
+    system.cache_line_size = options.cacheline_size;
 
     # create caches
     system.addCaches(options.caches, options.last_cache_level)
