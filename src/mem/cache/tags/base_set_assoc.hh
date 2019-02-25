@@ -170,11 +170,12 @@ public:
               cache->ticksToCycles(blk->whenReady - curTick()) + accessLatency;
         }
         blk->refCount += 1;
+        unsigned F = (blkSize <= 64) ? 1 : (blkSize / 64);
         for (Addr O = pkt->getOffset(blkSize),
                   OE = pkt->getSize() + pkt->getOffset(blkSize);
              O < OE; O++) {
             assert(O < blkSize);
-            blk->byteAccessVec |= 1 << O;
+            blk->byteAccessVec |= 1 << (O / F);
         }
       } else {
         // If a cache miss
@@ -246,8 +247,9 @@ public:
                      pkt->print());
 
              // Count number of bytes accessed
+             unsigned F = (blkSize <= 64) ? 1 : (blkSize / 64);
              unsigned count = 0;
-             for (unsigned i = 0; i < blkSize; i++)
+             for (unsigned i = 0; i < blkSize / F; i++)
                 count += (blk->byteAccessVec >> i) & 1;
              byteAccessDis[count]++;
 

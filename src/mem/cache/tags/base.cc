@@ -110,8 +110,9 @@ BaseTags::regStats()
 
     avgRefs = totalRefs/sampledRefs;
 
+    unsigned F = (blkSize <= 64) ? 1 : (blkSize / 64);
     byteAccessDis
-        .init(blkSize+1)
+        .init(blkSize/F+1)
         .name(name() + ".blk_accessed_bytes")
         .desc("number of blocks with N bytes accessed.")
         .flags(total)
