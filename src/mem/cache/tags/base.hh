@@ -269,6 +269,8 @@ class BaseTags : public ClockedObject
 
     virtual CacheBlk* findVictim(Addr addr) = 0;
 
+    virtual CacheBlk* findInvalidVictim(Addr addr) = 0;
+
     virtual int extractSet(Addr addr) const = 0;
 
     virtual void forEachBlk(CacheBlkVisitor &visitor) = 0;

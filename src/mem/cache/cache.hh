@@ -349,6 +349,10 @@ class Cache : public BaseCache
 
     inline bool allocOnFill(PacketPtr pkt) const override
     {
+        Addr addr = pkt->getAddr();
+        auto *blk = tags->findInvalidVictim(addr);
+        if (blk)
+            return true;
         if (pkt->isBypass())
             return false;
         MemCmd cmd = pkt->cmd;

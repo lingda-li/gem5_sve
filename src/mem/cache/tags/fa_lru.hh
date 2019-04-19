@@ -211,6 +211,12 @@ public:
      */
     CacheBlk* findVictim(Addr addr) override;
 
+    CacheBlk* findInvalidVictim(Addr addr) override
+    {
+        assert(0 && "FALRU does not support this function.");
+        return nullptr;
+    }
+
     void insertBlock(PacketPtr pkt, CacheBlk *blk) override;
 
     /**

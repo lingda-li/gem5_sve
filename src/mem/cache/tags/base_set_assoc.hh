@@ -217,6 +217,21 @@ public:
         return blk;
     }
 
+    CacheBlk* findInvalidVictim(Addr addr) override
+    {
+        BlkType *blk = nullptr;
+        int set = extractSet(addr);
+
+        // prefer to evict an invalid block
+        for (int i = 0; i < allocAssoc; ++i) {
+            blk = sets[set].blks[i];
+            if (!blk->isValid())
+                return blk;
+        }
+
+        return nullptr;
+    }
+
     /**
      * Insert the new block into the cache.
      * @param pkt Packet holding the address to update
