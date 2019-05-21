@@ -234,33 +234,33 @@ MemCmd::commandInfo[] =
 
 /// Convert to the actual command for status purpose
 MemCmd::Command MemCmd::toActualCmd() const {
+  if (IsSVE) {
     if (cmd == ReadReq) {
-        if (IsSVE) {
-            if (IsSG)
-                return SVEGather;
-            else
-                return SVEContigLoad;
-        }
+      if (IsSG)
+        return SVEGather;
+      else
+        return SVEContigLoad;
     } else if (cmd == WriteReq) {
-        if (IsSVE) {
-            if (IsSG)
-                return SVEScatter;
-            else
-                return SVEContigStore;
-        }
+      if (IsSG)
+        return SVEScatter;
+      else
+        return SVEContigStore;
     } else if (cmd == ReadExReq || cmd == ReadCleanReq ||
                cmd == ReadSharedReq) {
-        if (IsSVE) {
-            if (IsSG) {
-                if (isOriRead()) return SVEGather;
-                else if (isOriWrite()) return SVEScatter;
-            } else {
-                if (isOriRead()) return SVEContigLoad;
-                else if (isOriWrite()) return SVEContigStore;
-            }
-        }
+      if (IsSG) {
+        if (isOriRead())
+          return SVEGather;
+        else if (isOriWrite())
+          return SVEScatter;
+      } else {
+        if (isOriRead())
+          return SVEContigLoad;
+        else if (isOriWrite())
+          return SVEContigStore;
+      }
     }
-    return cmd;
+  }
+  return cmd;
 }
 
 bool Packet::isBypass() const {
