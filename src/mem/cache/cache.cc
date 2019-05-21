@@ -60,6 +60,7 @@
 #include "debug/CachePort.hh"
 #include "debug/CacheTags.hh"
 #include "debug/CacheVerbose.hh"
+#include "debug/PIM.hh"
 #include "mem/cache/blk.hh"
 #include "mem/cache/mshr.hh"
 #include "mem/cache/prefetch/base.hh"
@@ -2126,7 +2127,8 @@ Cache::handleSnoop(PacketPtr pkt, CacheBlk *blk, bool is_timing,
         if (blk_valid && blk->isDirty()) {
             DPRINTF(CacheVerbose, "%s: packet (snoop) %s found block: %s\n",
                     __func__, pkt->print(), blk->print());
-            PacketPtr wb_pkt = writecleanBlk(blk, pkt->req->getDest(), pkt->id);
+            PacketPtr wb_pkt = writecleanBlk(blk, pkt->req->getDest(),
+                                             pkt->id);
             PacketList writebacks;
             writebacks.push_back(wb_pkt);
 
@@ -2893,4 +2895,47 @@ MemSidePort::MemSidePort(const std::string &_name, Cache *_cache,
       _reqQueue(*_cache, *this, _snoopRespQueue, _label),
       _snoopRespQueue(*_cache, *this, _label), cache(_cache)
 {
+}
+
+bool Cache::flushPIM(Addr start_addr) {
+  Addr address = (start_addr / blkSize) * blkSize;
+  // std::cout<<"blocksize"<<std::dec<<blkSize<<std::endl;
+  CacheBlk *blk(tags->findBlock(address, true));
+  if (!blk)
+    blk = tags->findBlock(address, false);
+  if (blk) {
+    if (blk->isDirty()) {
+      DPRINTF(PIM, "Flushed by coherence [%llx]\n", address);
+      Request::Flags flags = 0;
+      RequestPtr req = new Request(address, blkSize, flags, 0);
+      PacketPtr pkt = new Packet(req, MemCmd::WriteReq);
+      uint8_t *empty = new uint8_t[blkSize];
+      pkt->dataDynamic(empty);
+      pkt->setDataFromBlock(blk->data, blkSize);
+      // pkt->setSrc(0);
+      memSidePort->sendFunctional(pkt);
+      delete pkt;
+    }
+    tags->invalidate(blk);
+    blk->invalidate();
+    assert(!tags->findBlock(address, true) &&
+           !tags->findBlock(address, false));
+    return true;
+  }
+
+  return false;
+}
+
+bool Cache::check_addr(Addr start_addr) {
+  Addr address = (start_addr / blkSize) * blkSize;
+  // int id = -1;
+  // Cycles lat(0);
+  CacheBlk *blk(tags->findBlock(address, true));
+  if (!blk)
+    blk = tags->findBlock(address, false);
+
+  if (blk && blk->isValid()) {
+    return true;
+  }
+  return false;
 }

@@ -53,6 +53,7 @@
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
 #include "debug/Drain.hh"
+#include "pim/pim_kernel.hh"
 #include "sim/system.hh"
 
 using namespace std;
@@ -73,7 +74,8 @@ DRAMCtrl::DRAMCtrl(const DRAMCtrlParams* p) :
     burstSize((devicesPerRank * burstLength * deviceBusWidth) / 8),
     rowBufferSize(devicesPerRank * deviceRowBufferSize),
     columnsPerRowBuffer(rowBufferSize / burstSize),
-    columnsPerStripe(range.interleaved() ? range.granularity() / burstSize : 1),
+    columnsPerStripe(range.interleaved() ? range.granularity() / burstSize
+                                         : 1),
     ranksPerChannel(p->ranks_per_channel),
     bankGroupsPerRank(p->bank_groups_per_rank),
     bankGroupArch(p->bank_groups_per_rank > 0),
@@ -154,8 +156,8 @@ DRAMCtrl::DRAMCtrl(const DRAMCtrlParams* p) :
         }
         // must have same number of banks in each bank group
         if ((banksPerRank % bankGroupsPerRank) != 0) {
-            fatal("Banks per rank (%d) must be evenly divisible by bank groups "
-                  "per rank (%d) for equal banks per bank group\n",
+            fatal("Banks per rank (%d) must be evenly divisible by bank groups"
+                  " per rank (%d) for equal banks per bank group\n",
                   banksPerRank, bankGroupsPerRank);
         }
         // tCCD_L should be greater than minimal, back-to-back burst delay
@@ -926,8 +928,8 @@ DRAMCtrl::activateBank(Rank& rank_ref, Bank& bank_ref,
     ++rank_ref.numBanksActive;
     assert(rank_ref.numBanksActive <= banksPerRank);
 
-    DPRINTF(DRAM, "Activate bank %d, rank %d at tick %lld, now got %d active\n",
-            bank_ref.bank, rank_ref.rank, act_tick,
+    DPRINTF(DRAM, "Activate bank %d, rank %d at tick %lld, now got %d active"
+            "\n", bank_ref.bank, rank_ref.rank, act_tick,
             ranks[rank_ref.rank]->numBanksActive);
 
     rank_ref.cmdList.push_back(Command(MemCommand::ACT, bank_ref.bank,
@@ -1189,8 +1191,8 @@ DRAMCtrl::doDRAMAccess(DRAMPacket* dram_pkt)
         ++p;
 
         // keep on looking until we find a hit or reach the end of the queue
-        // 1) if a hit is found, then both open and close adaptive policies keep
-        // the page open
+        // 1) if a hit is found, then both open and close adaptive policies
+        // keep the page open
         // 2) if no hit is found, got_bank_conflict is set to true if a bank
         // conflict request is waiting in the queue
         while (!got_more_hits && p != queue.end()) {
@@ -2753,6 +2755,12 @@ DRAMCtrl::MemoryPort::recvAtomic(PacketPtr pkt)
 bool
 DRAMCtrl::MemoryPort::recvTimingReq(PacketPtr pkt)
 {
+  if (!pkt->isPIM() && (pkt->isRead() || pkt->isWrite()) &&
+      memory.stalledAddr(pkt)) {
+    DPRINTF(PIM, "Packet blocked by coherence [%llx]\n", pkt->getAddr());
+    return false;
+  }
+
     // pass it to the memory controller
     return memory.recvTimingReq(pkt);
 }

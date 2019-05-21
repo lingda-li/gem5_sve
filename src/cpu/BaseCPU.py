@@ -239,25 +239,40 @@ class BaseCPU(MemObject):
                                   "interrupts[0].int_slave"]
         _uncached_master_ports += ["interrupts[0].int_master"]
 
-    def createInterruptController(self):
+    # @PIM
+    # Add PIM base address
+    pim_base_addr = Param.UInt64(0, "PIM base address")
+    # if the processor is a PIM processor
+    ispim = Param.Bool(False,"is a PIM processor")
+    # PIM processor id
+    host_id = Param.Int(-1, "CPU identifier")
+    total_host_cpu = Param.Int(1, "CPU identifier")
+
+    def createInterruptController(self, ispim = False):
         if buildEnv['TARGET_ISA'] == 'sparc':
-            self.interrupts = [SparcInterrupts() for i in xrange(self.numThreads)]
+            self.interrupts = [
+                    SparcInterrupts() for i in xrange(self.numThreads)]
         elif buildEnv['TARGET_ISA'] == 'alpha':
-            self.interrupts = [AlphaInterrupts() for i in xrange(self.numThreads)]
+            self.interrupts = [
+                    AlphaInterrupts() for i in xrange(self.numThreads)]
         elif buildEnv['TARGET_ISA'] == 'x86':
             self.apic_clk_domain = DerivedClockDomain(clk_domain =
                                                       Parent.clk_domain,
                                                       clk_divider = 16)
             self.interrupts = [X86LocalApic(clk_domain = self.apic_clk_domain,
-                                           pio_addr=0x2000000000000000)
+                                           pio_addr=0x2000000000000000,
+                                           pim = ispim)
                                for i in xrange(self.numThreads)]
             _localApic = self.interrupts
         elif buildEnv['TARGET_ISA'] == 'mips':
-            self.interrupts = [MipsInterrupts() for i in xrange(self.numThreads)]
+            self.interrupts = [
+                    MipsInterrupts() for i in xrange(self.numThreads)]
         elif buildEnv['TARGET_ISA'] == 'arm':
-            self.interrupts = [ArmInterrupts() for i in xrange(self.numThreads)]
+            self.interrupts = [
+                    ArmInterrupts() for i in xrange(self.numThreads)]
         elif buildEnv['TARGET_ISA'] == 'power':
-            self.interrupts = [PowerInterrupts() for i in xrange(self.numThreads)]
+            self.interrupts = [
+                    PowerInterrupts() for i in xrange(self.numThreads)]
         elif buildEnv['TARGET_ISA'] == 'riscv':
             self.interrupts = \
                 [RiscvInterrupts() for i in xrange(self.numThreads)]

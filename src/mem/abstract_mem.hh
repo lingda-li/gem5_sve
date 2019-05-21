@@ -53,6 +53,9 @@
 #include "params/AbstractMemory.hh"
 #include "sim/stats.hh"
 
+// @PIM
+#include "debug/PIM.hh"
+#include "pim/pim_kernel.hh"
 
 class System;
 
@@ -317,6 +320,13 @@ class AbstractMemory : public MemObject
      */
     void regStats() override;
 
+  public:
+    std::vector<Packet::PIMSenderState *> pendingPIMqueue;
+    bool stalledAddr(PacketPtr pkt);
+    bool checkPIMReady();
+    void functionalData(Addr addr, int size, uint8_t *res);
+    std::string cpu_type;
+    int coherence_granularity;
 };
 
 #endif //__MEM_ABSTRACT_MEMORY_HH__

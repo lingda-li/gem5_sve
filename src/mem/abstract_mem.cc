@@ -48,6 +48,7 @@
 
 #include "arch/locked_mem.hh"
 #include "cpu/base.hh"
+#include "cpu/simple/timing.hh"
 #include "cpu/thread_context.hh"
 #include "debug/LLSC.hh"
 #include "debug/MemoryAccess.hh"
@@ -242,32 +243,32 @@ AbstractMemory::checkLockedAddrList(PacketPtr pkt)
     // Iterate over list.  Note that there could be multiple matching records,
     // as more than one context could have done a load locked to this location.
     // Only remove records when we succeed in finding a record for (xc, addr);
-    // then, remove all records with this address.  Failed store-conditionals do
-    // not blow unrelated reservations.
+    // then, remove all records with this address.  Failed store-conditionals
+    // do not blow unrelated reservations.
     list<LockedAddr>::iterator i = lockedAddrList.begin();
 
     if (isLLSC) {
         while (i != lockedAddrList.end()) {
             if (i->addr == paddr && i->matchesContext(req)) {
-                // it's a store conditional, and as far as the memory system can
-                // tell, the requesting context's lock is still valid.
+                // it's a store conditional, and as far as the memory system
+                // can tell, the requesting context's lock is still valid.
                 DPRINTF(LLSC, "StCond success: context %d addr %#x\n",
                         req->contextId(), paddr);
                 allowStore = true;
                 break;
             }
-            // If we didn't find a match, keep searching!  Someone else may well
-            // have a reservation on this line here but we may find ours in just
-            // a little while.
+            // If we didn't find a match, keep searching!  Someone else may
+            // well have a reservation on this line here but we may find ours
+            // in just a little while.
             i++;
         }
         req->setExtraData(allowStore ? 1 : 0);
     }
     // LLSCs that succeeded AND non-LLSC stores both fall into here:
     if (allowStore) {
-        // We write address paddr.  However, there may be several entries with a
-        // reservation on this address (for other contextIds) and they must all
-        // be removed.
+        // We write address paddr.  However, there may be several entries with
+        // a reservation on this address (for other contextIds) and they must
+        // all be removed.
         i = lockedAddrList.begin();
         while (i != lockedAddrList.end()) {
             if (i->addr == paddr) {
@@ -303,18 +304,18 @@ AbstractMemory::checkLockedAddrList(PacketPtr pkt)
 
 #define TRACE_PACKET(A)                                                 \
     do {                                                                \
-        switch (pkt->getSize()) {                                       \
-          CASE(A, uint64_t);                                            \
-          CASE(A, uint32_t);                                            \
-          CASE(A, uint16_t);                                            \
-          CASE(A, uint8_t);                                             \
-          default:                                                      \
-            DPRINTF(MemoryAccess, "%s from %s of size %i on address 0x%x %c\n",\
-                    A, system()->getMasterName(pkt->req->masterId()),          \
-                    pkt->getSize(), pkt->getAddr(),                            \
-                    pkt->req->isUncacheable() ? 'U' : 'C');                    \
-            DDUMP(MemoryAccess, pkt->getConstPtr<uint8_t>(), pkt->getSize());  \
-        }                                                                      \
+      switch (pkt->getSize()) {                                       \
+        CASE(A, uint64_t);                                            \
+        CASE(A, uint32_t);                                            \
+        CASE(A, uint16_t);                                            \
+        CASE(A, uint8_t);                                             \
+        default:                                                      \
+          DPRINTF(MemoryAccess, "%s from %s of size %i on address 0x%x %c\n",\
+                  A, system()->getMasterName(pkt->req->masterId()),          \
+                  pkt->getSize(), pkt->getAddr(),                            \
+                  pkt->req->isUncacheable() ? 'U' : 'C');                    \
+          DDUMP(MemoryAccess, pkt->getConstPtr<uint8_t>(), pkt->getSize());  \
+      }                                                                      \
     } while (0)
 
 #else
@@ -355,7 +356,8 @@ AbstractMemory::access(PacketPtr pkt)
             uint32_t condition_val32;
 
             if (!pmemAddr)
-                panic("Swap only works if there is real memory (i.e. null=False)");
+              panic(
+                  "Swap only works if there is real memory (i.e. null=False)");
 
             bool overwrite_mem = true;
             // keep a copy of our possible write value, and copy what is at the
@@ -435,9 +437,81 @@ AbstractMemory::access(PacketPtr pkt)
     }
 }
 
+void AbstractMemory::functionalData(Addr addr, int size, uint8_t *res) {
+  uint8_t *_addr = pmemAddr + addr - range.start();
+  memcpy(&res, _addr, size);
+}
+
 void
 AbstractMemory::functionalAccess(PacketPtr pkt)
 {
+  if (pkt->isPIM()) {
+    Packet::PIMSenderState *senderState =
+        dynamic_cast<Packet::PIMSenderState *>(pkt->senderState);
+    assert(senderState);
+
+    if (senderState->isRegistration()) {
+      pendingPIMqueue.push_back(senderState);
+
+      DPRINTF(
+          PIM, "Add PIM operations to the Queue [0x%lx] [0x%lx] -> [0x%lx]\n",
+          senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+
+      pkt->popLabel();
+
+      delete pkt;
+    }
+    if (senderState->isComplete()) {
+      DPRINTF(
+          PIM,
+          "Remove PIM operations from the Queue [0x%lx] [0x%lx] -> [0x%lx]\n",
+          senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+      bool found = false;
+      bool threadid = -1;
+      std::vector<Packet::PIMSenderState *>::iterator index;
+      for (auto i = pendingPIMqueue.begin(); i != pendingPIMqueue.end(); i++) {
+        if ((*i)->addr[0] == senderState->addr[0] &&
+            (*i)->addr[0] == senderState->addr[0] &&
+            (*i)->addr[0] == senderState->addr[0]) {
+          found = true;
+          index = i;
+          threadid = (*i)->threadid;
+          break;
+        }
+      }
+      assert(found && threadid >= 0);
+
+      BaseCPU *cpu = (BaseCPU *)SimObject::find("system.cpu");
+      if (!cpu) {
+        cpu = (BaseCPU *)SimObject::find(
+            ("system.cpu" + to_string(threadid)).data());
+      }
+      assert(cpu);
+      for (int i = 0; i < cpu->pCaches.size(); i++) {
+        for (int j = 0; j < 3; j++) {
+          if (cpu->pCaches[i]->check_addr((*index)->addr[j])) {
+            cpu->pCaches[i]->flushPIM((*index)->addr[j]);
+          }
+        }
+      }
+      if (this->cpu_type == "TimingSimpleCPU") {
+        TimingSimpleCPU *simplecpu = (TimingSimpleCPU *)cpu;
+        simplecpu->activateContext(
+            (*(simplecpu->threadInfo[simplecpu->curThread]))
+                .thread->contextId());
+      } else {
+        if (this->cpu_type == "DerivO3CPU") {
+          cpu->activateContext(threadid);
+        } else {
+          fatal("Base CPU cannot process PIM.");
+        }
+      }
+      pendingPIMqueue.erase(index);
+    }
+
+    return;
+  }
+
     assert(AddrRange(pkt->getAddr(),
                      pkt->getAddr() + pkt->getSize() - 1).isSubset(range));
 
@@ -475,4 +549,17 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
         panic("AbstractMemory: unimplemented functional command %s",
               pkt->cmdString());
     }
+}
+
+bool AbstractMemory::checkPIMReady() { return (pendingPIMqueue.size() > 0); }
+
+bool AbstractMemory::stalledAddr(PacketPtr pkt) {
+  for (auto i = pendingPIMqueue.begin(); i != pendingPIMqueue.end(); i++) {
+    for (int j = 0; j < (*i)->addr.size(); j++) {
+      if ((*i)->addr[j] / ((uint64_t)coherence_granularity) ==
+          pkt->getAddr() / ((uint64_t)coherence_granularity))
+        return true;
+    }
+  }
+  return false;
 }

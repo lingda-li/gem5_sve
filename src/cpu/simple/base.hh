@@ -83,8 +83,9 @@ class SimpleExecContext;
 
 class BaseSimpleCPU : public BaseCPU
 {
-  protected:
+  public:
     ThreadID curThread;
+  protected:
     BPredUnit *branchPred;
 
     void checkPcEventQueue();

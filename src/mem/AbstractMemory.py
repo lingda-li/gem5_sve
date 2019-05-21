@@ -67,3 +67,8 @@ class AbstractMemory(MemObject):
     # configuration information about the physical memory layout to
     # the kernel, e.g. using ATAG or ACPI
     conf_table_reported = Param.Bool(True, "Report to configuration table")
+
+    # @PIM
+    ############kernels = VectorParam.PIMKernel("Integrated PIM Kernels")
+    cpu_type = Param.String("", "The host-side cpu type")
+    coherence_granularity = Param.MemorySize('64B',"PIM coherence granularity")

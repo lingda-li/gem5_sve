@@ -52,7 +52,9 @@
 #include "debug/Drain.hh"
 #include "debug/ExecFaulting.hh"
 #include "debug/Mwait.hh"
+#include "debug/PIM.hh"
 #include "debug/SimpleCPU.hh"
+#include "mem/abstract_mem.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
 #include "params/TimingSimpleCPU.hh"
@@ -233,6 +235,7 @@ void
 TimingSimpleCPU::suspendContext(ThreadID thread_num)
 {
     DPRINTF(SimpleCPU, "SuspendContext %d\n", thread_num);
+    DPRINTF(PIM, "SuspendContext %d\n", thread_num);
 
     assert(thread_num < numThreads);
     activeThreads.remove(thread_num);
@@ -277,6 +280,13 @@ TimingSimpleCPU::handleReadPacket(PacketPtr pkt)
         _status = DcacheRetry;
         dcache_pkt = pkt;
     } else {
+      if (ispim) {
+        for (int i = 0; i < pCaches.size(); i++) {
+          if (pCaches[i]->check_addr(dcache_pkt->getAddr())) {
+            pCaches[i]->flushPIM(dcache_pkt->getAddr());
+          }
+        }
+      }
         _status = DcacheWaitResponse;
         // memory system takes ownership of packet
         dcache_pkt = NULL;
@@ -303,7 +313,8 @@ TimingSimpleCPU::sendData(RequestPtr req, uint8_t *data, uint64_t *res,
         bool do_access = true;  // flag to suppress cache access
 
         if (req->isLLSC()) {
-            do_access = TheISA::handleLockedWrite(thread, req, dcachePort.cacheBlockMask);
+            do_access = TheISA::handleLockedWrite(thread, req,
+                                                  dcachePort.cacheBlockMask);
         } else if (req->isCondSwap()) {
             assert(res);
             req->setExtraData(*res);
@@ -490,6 +501,13 @@ TimingSimpleCPU::handleWritePacket()
     } else if (!dcachePort.sendTimingReq(dcache_pkt)) {
         _status = DcacheRetry;
     } else {
+      if (ispim) {
+        for (int i = 0; i < pCaches.size(); i++) {
+          if (pCaches[i]->check_addr(dcache_pkt->getAddr())) {
+            pCaches[i]->flushPIM(dcache_pkt->getAddr());
+          }
+        }
+      }
         _status = DcacheWaitResponse;
         // memory system takes ownership of packet
         dcache_pkt = NULL;
@@ -580,6 +598,10 @@ TimingSimpleCPU::finishTranslation(WholeTranslationState *state)
 {
     _status = BaseSimpleCPU::Running;
 
+    PacketPtr pkt = buildPacket(state->mainReq, state->mode == BaseTLB::Read);
+    if (this->stopCurrent(pkt, 0))
+      return;
+
     if (state->getFault() != NoFault) {
         if (state->isPrefetch()) {
             state->setNoFault();
@@ -631,7 +653,8 @@ TimingSimpleCPU::fetch()
         ifetch_req->taskId(taskId());
         ifetch_req->setContext(thread->contextId());
         setupFetchRequest(ifetch_req);
-        DPRINTF(SimpleCPU, "Translating address %#x\n", ifetch_req->getVaddr());
+        DPRINTF(SimpleCPU, "Translating address %#x\n",
+                ifetch_req->getVaddr());
         thread->itb->translateTiming(ifetch_req, thread->getTC(),
                 &fetchTranslation, BaseTLB::Execute);
     } else {
@@ -665,11 +688,11 @@ TimingSimpleCPU::sendFetch(const Fault &fault, RequestPtr req,
             ifetch_pkt = NULL;
         }
     } else {
-        DPRINTF(SimpleCPU, "Translation of addr %#x faulted\n", req->getVaddr());
-        delete req;
-        // fetch fault: advance directly to next instruction (fault handler)
-        _status = BaseSimpleCPU::Running;
-        advanceInst(fault);
+      DPRINTF(SimpleCPU, "Translation of addr %#x faulted\n", req->getVaddr());
+      delete req;
+      // fetch fault: advance directly to next instruction (fault handler)
+      _status = BaseSimpleCPU::Running;
+      advanceInst(fault);
     }
 
     updateCycleCounts();
@@ -718,6 +741,15 @@ TimingSimpleCPU::advanceInst(const Fault &fault)
 void
 TimingSimpleCPU::completeIfetch(PacketPtr pkt)
 {
+  if (!(_status == IcacheWaitResponse)) {
+    for (int i = 0; i < pCaches.size(); i++) {
+      if (pCaches[i]->check_addr(pkt->getAddr())) {
+        pCaches[i]->flushPIM(pkt->getAddr());
+      }
+    }
+    return;
+  }
+
     SimpleExecContext& t_info = *threadInfo[curThread];
 
     DPRINTF(SimpleCPU, "Complete ICache Fetch for addr %#x\n", pkt ?
@@ -826,6 +858,16 @@ TimingSimpleCPU::completeDataAccess(PacketPtr pkt)
     // received a response from the dcache: complete the load or store
     // instruction
     assert(!pkt->isError());
+    if (!(_status == DcacheWaitResponse || _status == DTBWaitResponse ||
+          pkt->req->getFlags().isSet(Request::NO_ACCESS))) {
+      for (int i = 0; i < pCaches.size(); i++) {
+        if (pCaches[i]->check_addr(pkt->getAddr())) {
+          pCaches[i]->flushPIM(pkt->getAddr());
+        }
+      }
+      return;
+    }
+
     assert(_status == DcacheWaitResponse || _status == DTBWaitResponse ||
            pkt->req->getFlags().isSet(Request::NO_ACCESS));
 
@@ -901,9 +943,9 @@ TimingSimpleCPU::DcachePort::recvTimingSnoopReq(PacketPtr pkt)
     }
 
     // Making it uniform across all CPUs:
-    // The CPUs need to be woken up only on an invalidation packet (when using caches)
-    // or on an incoming write packet (when not using caches)
-    // It is not necessary to wake up the processor on all incoming packets
+    // The CPUs need to be woken up only on an invalidation packet (when using
+    // caches) or on an incoming write packet (when not using caches) It is not
+    // necessary to wake up the processor on all incoming packets
     if (pkt->isInvalidate() || pkt->isWrite()) {
         for (auto &t_info : cpu->threadInfo) {
             TheISA::handleLockedSnoop(t_info->thread, pkt, cacheBlockMask);
@@ -1027,4 +1069,190 @@ TimingSimpleCPU *
 TimingSimpleCPUParams::create()
 {
     return new TimingSimpleCPU(this);
+}
+
+bool TimingSimpleCPU::stopCurrent(PacketPtr pkt, int id) {
+
+  AbstractMemory *mem = (AbstractMemory *)SimObject::find("system.mem_ctrls");
+  if (!mem) {
+    mem = (AbstractMemory *)SimObject::find("system.hmc_dev.mem_ctrls00");
+  }
+  assert(mem);
+  if (mem && mem->stalledAddr(pkt)) {
+    DPRINTF(PIM, "The access is blocked by PIM Coherence [%lx]\n",
+            pkt->getAddr());
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread *thread = t_info.thread;
+    suspendContext(thread->contextId());
+    return true;
+  }
+  return false;
+}
+bool TimingSimpleCPU::PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
+                                 uint64_t out1) {
+  // setDebugFlag("IsaFake");
+  // setDebugFlag("TLB");
+  // setDebugFlag("X86");
+  // setDebugFlag("SimpleCPU");
+  // setDebugFlag("Fetch");
+  // setDebugFlag("Decoder");
+  // @PIM: Uncomment this line to show debug information of the processors upon
+  // receving PIM operations. It may provide more flexibilities while debuging
+  // PIMSim.
+  SimpleExecContext &t_info = *threadInfo[curThread];
+  SimpleThread *thread = t_info.thread;
+
+  // @PIM:
+  // @todo: Upon a PIM command is decoded by a processor, the processor has to
+  // translate the physical address of the operands.
+  unsigned size = 1;
+  Fault fault;
+  const int asid = 0;
+
+  Addr pimAddr[3] = {in1, in2, out1};
+  std::vector<Addr> pimpAddr;
+  const Addr pc = thread->instAddr();
+
+  Packet::PIMSenderState *vdata = new Packet::PIMSenderState(
+      curTick(), pimAddr[0], pimAddr[1], pimAddr[2], _cpuId);
+  vdata->threadid = curThread;
+  if (pendingPIM.size() > 0) {
+    pendingPIM.push_back(vdata);
+    vdata = pendingPIM.front();
+  }
+
+  for (int i = 0; i < vdata->addr.size(); i++) {
+    Addr addr = vdata->addr[i];
+    RequestPtr req = new Request(asid, addr, size, Request::NO_ACCESS,
+                                 dataMasterId(), pc, thread->contextId());
+
+    fault = thread->dtb->translateAtomic(req, tc, // thread->getTC(),
+                                         BaseTLB::Write);
+    // For TimingSimpleCPU, the address of atomic PIM operations are translated
+    // by the host processors. Therefore, it suspends if a translate fault
+    // happens.
+    if (fault != NoFault) {
+      break;
+    }
+
+    // got physical address for the first PIM address
+    pimpAddr.push_back(req->getPaddr());
+    DPRINTF(PIM, "Translated Physical Address for PIM [0x%lx] -> [0x%lx]\n",
+            addr, req->getPaddr());
+  }
+  if (fault != NoFault) {
+    DPRINTF(PIM, "Fault occured. Handling the fault for PIM address\n");
+
+    pendingPIM.push_back(vdata);
+
+    schedule(pimEvent, clockEdge(Cycles(1)));
+    return false;
+  }
+
+  assert(!pimEvent.scheduled());
+
+  Packet::PIMSenderState *data =
+      new Packet::PIMSenderState(curTick(), pimpAddr, _cpuId);
+  Request::Flags flags = 0;
+  RequestPtr req = new Request(pim_addr_base, size, flags, 0);
+  PacketPtr pkt = new Packet(req, MemCmd::PIM);
+
+  uint8_t *empty = new uint8_t[size];
+  pkt->dataDynamic(empty);
+  req->taskId(taskId());
+  pkt->pushSenderState(data);
+
+  for (int i = 0; i < pCaches.size(); i++) {
+    if (pCaches[i]->check_addr(pimpAddr[i])) {
+      pCaches[i]->flushPIM(pimpAddr[i]);
+    }
+  }
+  AbstractMemory *mem = (AbstractMemory *)SimObject::find("system.mem_ctrls");
+  if (!mem) {
+    mem = (AbstractMemory *)SimObject::find("system.hmc_dev.mem_ctrls00");
+  }
+  assert(mem);
+  uint64_t data1;
+  mem->functionalData(pimpAddr[0], 8, (uint8_t *)&data1);
+
+  dcachePort.sendFunctional(pkt);
+
+  _status = Running;
+
+  return true;
+}
+
+void TimingSimpleCPU::retryPIM() {
+  // @PIM: Currently, the addresses of PIM requests are calculated by the
+  // host-side processors. If the address translation is fault, the processors
+  // had to retry PIM requests at next cycles.
+  DPRINTF(PIM, "Start PIM retry event\n");
+  if (pendingPIM.size() > 0) {
+    auto f = pendingPIM[0];
+    if (PIMCommand((*threadInfo[curThread]).thread->getTC(), f->addr[0],
+                   f->addr[1], f->addr[2])) {
+      DPRINTF(PIM, "Complete retry sending\n");
+      delete (pendingPIM[0]);
+      pendingPIM.erase(pendingPIM.begin());
+      _status = Running;
+    } else {
+      DPRINTF(PIM, "Failed sending retry requests, schedule next retry\n");
+    }
+    if (pendingPIM.size() > 0) {
+      assert(!pimEvent.scheduled());
+      schedule(pimEvent, clockEdge(Cycles(1)));
+    }
+  } else {
+    DPRINTF(PIM, "Retry Event : No sence \n");
+  }
+}
+
+void TimingSimpleCPU::PIMProcess(ThreadContext *tc, int pim_id) {
+  // setDebugFlag("TLB");
+  // setDebugFlag("X86");
+  // setDebugFlag("SimpleCPU");
+  // setDebugFlag("Fetch");
+  // setDebugFlag("Decoder");
+  // setDebugFlag("SnoopFilter");
+  // assert(pim_id>=0);
+  DPRINTF(PIM, "Encountering PIMProcess command, use PIM processor [%d]\n",
+          pim_id);
+  if (ispim) {
+    advancePC(NoFault);
+    return;
+  }
+
+  BaseCPU *pim_cpu = (BaseCPU *)SimObject::find("system.pim_cpu");
+  if (!pim_cpu) {
+    pim_cpu = (BaseCPU *)SimObject::find(
+        ("system.pim_cpu" + std::to_string(pim_id)).data());
+    if (!pim_cpu)
+      fatal("Found no PIM processors.");
+  }
+  pim_cpu->takeOverFrom(this);
+
+  this->haltContext(curThread);
+  pim_cpu->host_id = this->_cpuId;
+  pim_cpu->activateContext(0);
+}
+
+void TimingSimpleCPU::HostProcess(ThreadContext *tc) {
+  assert(ispim);
+  assert(host_id >= 0);
+  DPRINTF(PIM,
+          "Encountering HostProcess command, use host-side processor [%d]\n",
+          host_id);
+
+  BaseCPU *cpu = (BaseCPU *)SimObject::find("system.cpu");
+  if (!cpu) {
+    cpu = (BaseCPU *)SimObject::find(
+        ("system.cpu" + std::to_string(host_id)).data());
+    if (!cpu)
+      fatal("Found no matching processors.");
+  }
+  cpu->takeOverFrom(this);
+
+  this->haltContext(curThread);
+
+  cpu->activateContext(0);
 }

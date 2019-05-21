@@ -57,15 +57,17 @@
 #include "arch/types.hh"
 #include "base/statistics.hh"
 #include "config/the_isa.hh"
+#include "cpu/activity.hh"
+#include "cpu/base.hh"
 #include "cpu/o3/comm.hh"
 #include "cpu/o3/cpu_policy.hh"
 #include "cpu/o3/scoreboard.hh"
 #include "cpu/o3/thread_state.hh"
-#include "cpu/activity.hh"
-#include "cpu/base.hh"
 #include "cpu/simple_thread.hh"
 #include "cpu/timebuf.hh"
+
 //#include "cpu/o3/thread_context.hh"
+#include "debug/PIM.hh"
 #include "params/DerivO3CPU.hh"
 #include "sim/process.hh"
 
@@ -797,7 +799,7 @@ class FullO3CPU : public BaseO3CPU
     Stats::Scalar quiesceCycles;
     /** Stat for the number of committed instructions per thread. */
     Stats::Vector committedInsts;
-    /** Stat for the number of committed ops (including micro ops) per thread. */
+    // Stat for the number of committed ops (including micro ops) per thread.
     Stats::Vector committedOps;
     /** Stat for the CPI per thread. */
     Stats::Formula cpi;
@@ -826,6 +828,14 @@ class FullO3CPU : public BaseO3CPU
     //number of misc
     Stats::Scalar miscRegfileReads;
     Stats::Scalar miscRegfileWrites;
+
+    // @PIM
+    bool PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
+                    uint64_t out1) override;
+    bool stopCurrent(PacketPtr pkt, int id) override;
+    void PIMProcess(ThreadContext *tc, int pim_id) override;
+    void HostProcess(ThreadContext *tc) override;
+    void retryPIM() override;
 };
 
 #endif // __CPU_O3_CPU_HH__

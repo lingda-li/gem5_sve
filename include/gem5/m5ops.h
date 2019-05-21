@@ -84,6 +84,11 @@ void m5a_l(char *lsm, const void *id, char *sm);
 void m5a_identify(uint64_t id);
 uint64_t m5a_getid(void);
 
+// @PIM
+void PIM(uint64_t in1, uint64_t in2, uint64_t out1);
+void PIMProcess(int pim_id);
+void HostProcess();
+
 #ifdef __cplusplus
 }
 #endif

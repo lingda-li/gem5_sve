@@ -118,7 +118,8 @@ BaseSimpleCPU::BaseSimpleCPU(BaseSimpleCPUParams *p)
         checker->setSystem(p->system);
         // Manipulate thread context
         ThreadContext *cpu_tc = threadContexts[0];
-        threadContexts[0] = new CheckerThreadContext<ThreadContext>(cpu_tc, this->checker);
+        threadContexts[0] =
+            new CheckerThreadContext<ThreadContext>(cpu_tc, this->checker);
     } else {
         checker = NULL;
     }
@@ -702,7 +703,8 @@ BaseSimpleCPU::advancePC(const Fault &fault)
             branchPred->update(cur_sn, curThread);
         } else {
             // Mis-predicted branch
-            branchPred->squash(cur_sn, thread->pcState(), branching, curThread);
+            branchPred->squash(cur_sn, thread->pcState(), branching,
+                               curThread);
             ++t_info.numBranchMispred;
         }
     }
@@ -712,6 +714,7 @@ void
 BaseSimpleCPU::startup()
 {
     BaseCPU::startup();
+    if (!ispim)
     for (auto& t_info : threadInfo)
         t_info->thread->startup();
 }

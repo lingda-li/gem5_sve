@@ -68,6 +68,8 @@ using namespace std;
 #define SET6(a1, a2, a3, a4, a5, a6) (SET5(a1, a2, a3, a4, a5) | SET1(a6))
 #define SET7(a1, a2, a3, a4, a5, a6, a7) (SET6(a1, a2, a3, a4, a5, a6) | \
                                           SET1(a7))
+#define SET8(a1, a2, a3, a4, a5, a6, a7, a8)                             \
+  (SET7(a1, a2, a3, a4, a5, a6, a7) | SET1(a8))
 
 const MemCmd::CommandInfo
 MemCmd::commandInfo[] =
@@ -230,6 +232,15 @@ MemCmd::commandInfo[] =
     /* SVE Contig Store */
     { SET5(IsWrite, NeedsWritable, IsRequest, NeedsResponse, HasData),
       WriteResp, "SVEContigStoreReq" },
+    { SET2(IsRequest, IsPIM), InvalidCmd, "PIM" },
+    { SET6(IsRequest, NeedsResponse, IsPIM, IsRead, IsPIMRead, IsEviction),
+      PIMReadResp, "PIMRead" },
+    { SET8(IsRequest, NeedsResponse, IsPIM, IsWrite, HasData, NeedsWritable,
+           IsPIMWrite,IsEviction), PIMWriteResp, "PIMWrite" },
+    { SET7(IsRead, IsResponse, HasData, IsInvalidate, NeedsResponse, IsPIM,
+           IsPIMRead), InvalidCmd, "PIMReadResp" },
+    { SET5(IsWrite, IsResponse, IsInvalidate, IsPIM, IsPIMWrite),
+      InvalidCmd, "PIMWriteResp" },
 };
 
 /// Convert to the actual command for status purpose

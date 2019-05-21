@@ -362,6 +362,13 @@ class TimingSimpleCPU : public BaseSimpleCPU
      * @returns true if the CPU is drained, false otherwise.
      */
     bool tryCompleteDrain();
+
+    bool PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
+                    uint64_t out1) override;
+    void PIMProcess(ThreadContext *tc, int pim_id) override;
+    void HostProcess(ThreadContext *tc) override;
+    void retryPIM() override;
+    bool stopCurrent(PacketPtr pkt, int id) override;
 };
 
 #endif // __CPU_SIMPLE_TIMING_HH__

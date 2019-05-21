@@ -592,6 +592,9 @@ class Cache : public BaseCache
      */
     void serialize(CheckpointOut &cp) const override;
     void unserialize(CheckpointIn &cp) override;
+
+    bool flushPIM(Addr start_addr);
+    bool check_addr(Addr start_addr);
 };
 
 /**

@@ -51,13 +51,19 @@
 // Before we do anything else, check if this build is the NULL ISA,
 // and if so stop here
 #include "config/the_isa.hh"
+
 #if THE_ISA == NULL_ISA
 #include "arch/null/cpu_dummy.hh"
+
 #else
 #include "arch/interrupts.hh"
 #include "arch/isa_traits.hh"
 #include "arch/microcode_rom.hh"
 #include "base/statistics.hh"
+#include "debug/Mwait.hh"
+#include "debug/PIM.hh"
+#include "mem/abstract_mem.hh"
+#include "mem/cache/cache.hh"
 #include "mem/mem_object.hh"
 #include "sim/eventq.hh"
 #include "sim/full_system.hh"
@@ -65,7 +71,6 @@
 #include "sim/probe/pmu.hh"
 #include "sim/probe/probe.hh"
 #include "sim/system.hh"
-#include "debug/Mwait.hh"
 
 class BaseCPU;
 struct BaseCPUParams;
@@ -120,11 +125,10 @@ class BaseCPU : public MemObject
     // therefore no setCpuId() method is provided
     int _cpuId;
 
-    /** Each cpu will have a socket ID that corresponds to its physical location
-     * in the system. This is usually used to bucket cpu cores under single DVFS
-     * domain. This information may also be required by the OS to identify the
-     * cpu core grouping (as in the case of ARM via MPIDR register)
-     */
+    // Each cpu will have a socket ID that corresponds to its physical location
+    // in the system. This is usually used to bucket cpu cores under single
+    // DVFS domain. This information may also be required by the OS to identify
+    // the cpu core grouping (as in the case of ARM via MPIDR register)
     const uint32_t _socketId;
 
     /** instruction side request id that must be placed in all requests */
@@ -133,11 +137,11 @@ class BaseCPU : public MemObject
     /** data side request id that must be placed in all requests */
     MasterID _dataMasterId;
 
-    /** An intrenal representation of a task identifier within gem5. This is
-     * used so the CPU can add which taskId (which is an internal representation
-     * of the OS process ID) to each request so components in the memory system
-     * can track which process IDs are ultimately interacting with them
-     */
+    // An intrenal representation of a task identifier within gem5. This is
+    // used so the CPU can add which taskId (which is an internal
+    // representation  of the OS process ID) to each request so components in
+    // the memory system  can track which process IDs are ultimately
+    // nteracting with them
     uint32_t _taskId;
 
     /** The current OS process ID that is executing on this processor. This is
@@ -644,6 +648,38 @@ class BaseCPU : public MemObject
     const Cycles pwrGatingLatency;
     const bool powerGatingOnIdle;
     EventFunctionWrapper enterPwrGatingEvent;
+
+    // @PIM
+public:
+    EventFunctionWrapper pimEvent;
+
+    Addr pim_addr_base;
+    bool ispim;
+    int host_id;
+    int total_host_cpu;
+
+    std::vector<Cache*> pCaches;
+    virtual void retryPIM(){
+      fatal("Base CPU cannot process PIM.");
+    };
+    std::vector<Packet::PIMSenderState *> pendingPIM;
+
+    virtual bool PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
+                            uint64_t out1) {
+      fatal("Base CPU cannot process PIM.");
+    };
+
+    virtual void PIMProcess(ThreadContext *tc, int pim_id){
+      fatal("Base CPU cannot process PIM.");
+    };
+
+    virtual void HostProcess(ThreadContext *tc){
+      fatal("Base CPU cannot process PIM.");
+    }
+    virtual bool stopCurrent(PacketPtr pkt, int id){
+      fatal("Base CPU cannot process PIM.");
+      return false;
+    }
 };
 
 #endif // THE_ISA == NULL_ISA

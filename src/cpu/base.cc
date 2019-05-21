@@ -107,8 +107,8 @@ CPUProgressEvent::process()
 #ifndef NDEBUG
     double ipc = double(temp - lastNumInst) / (_interval / cpu->clockPeriod());
 
-    DPRINTFN("%s progress event, total committed:%i, progress insts committed: "
-             "%lli, IPC: %0.8d\n", cpu->name(), temp, temp - lastNumInst,
+    DPRINTFN("%s progress event, total committed:%i, progress insts committed:"
+             " %lli, IPC: %0.8d\n", cpu->name(), temp, temp - lastNumInst,
              ipc);
     ipc = 0.0;
 #else
@@ -130,7 +130,8 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
       _instMasterId(p->system->getMasterId(name() + ".inst")),
       _dataMasterId(p->system->getMasterId(name() + ".data")),
       _taskId(ContextSwitchTaskId::Unknown), _pid(invldPid),
-      _switchedOut(p->switched_out), _cacheLineSize(p->system->cacheLineSize()),
+      _switchedOut(p->switched_out),
+      _cacheLineSize(p->system->cacheLineSize()),
       interrupts(p->interrupts), profileEvent(NULL),
       numThreads(p->numThreads), system(p->system),
       previousCycle(0), previousState(CPU_STATE_SLEEP),
@@ -140,7 +141,12 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
       syscallRetryLatency(p->syscallRetryLatency),
       pwrGatingLatency(p->pwr_gating_latency),
       powerGatingOnIdle(p->power_gating_on_idle),
-      enterPwrGatingEvent([this]{ enterPwrGating(); }, name())
+      enterPwrGatingEvent([this]{ enterPwrGating(); }, name()),
+      pimEvent([this]{ retryPIM(); }, name()),
+      pim_addr_base(p->pim_base_addr),
+      ispim(p->ispim),
+      host_id(0),
+      total_host_cpu(p->total_host_cpu)
 {
     // if Python did not provide a valid ID, do it here
     if (_cpuId == -1 ) {
@@ -258,7 +264,7 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
     }
     tracer = params()->tracer;
 
-    if (params()->isa.size() != numThreads) {
+    if (params()->isa.size() != numThreads && !ispim) {
         fatal("Number of ISAs (%i) assigned to the CPU does not equal number "
               "of threads (%i).\n", params()->isa.size(), numThreads);
     }
@@ -351,6 +357,40 @@ BaseCPU::init()
 
         verifyMemoryMode();
     }
+
+    // @PIM
+    Cache *cache = (Cache *)SimObject::find("system.cpu.dcache");
+    if (cache)
+      pCaches.push_back(cache);
+    cache = (Cache *)SimObject::find("system.cpu.icache");
+    if (cache)
+      pCaches.push_back(cache);
+
+    if (pCaches.size() <= 0) {
+      int i = 0;
+      int count = pCaches.size();
+      while (true) {
+        cache = (Cache *)SimObject::find(
+            ("system.cpu" + to_string(i) + ".dcache").data());
+        if (cache)
+          pCaches.push_back(cache);
+        cache = (Cache *)SimObject::find(
+            ("system.cpu" + to_string(i) + ".icache").data());
+        if (cache)
+          pCaches.push_back(cache);
+        i++;
+
+        if (count == pCaches.size())
+          break;
+        count = pCaches.size();
+      }
+    }
+
+    cache = (Cache *)SimObject::find("system.l2");
+    if (cache)
+      pCaches.push_back(cache);
+
+    DPRINTF(PIM, "Add %d caches to the cache list\n", pCaches.size());
 }
 
 void
@@ -365,7 +405,7 @@ BaseCPU::startup()
         new CPUProgressEvent(this, params()->progress_interval);
     }
 
-    if (_switchedOut)
+    if (_switchedOut || ispim)
         ClockedObject::pwrState(Enums::PwrState::OFF);
 
     // Assumption CPU start to operate instantaneously without any latency
@@ -587,8 +627,8 @@ void
 BaseCPU::takeOverFrom(BaseCPU *oldCPU)
 {
     assert(threadContexts.size() == oldCPU->threadContexts.size());
-    assert(_cpuId == oldCPU->cpuId());
-    assert(_switchedOut);
+    assert(_cpuId == oldCPU->cpuId() || ispim || oldCPU->ispim);
+    assert(_switchedOut || ispim || oldCPU->ispim);
     assert(oldCPU != this);
     _pid = oldCPU->getPid();
     _taskId = oldCPU->taskId();
@@ -607,43 +647,45 @@ BaseCPU::takeOverFrom(BaseCPU *oldCPU)
 
         newTC->takeOverFrom(oldTC);
 
-        CpuEvent::replaceThreadContext(oldTC, newTC);
+        if (!(oldCPU->ispim || ispim)) {
+          CpuEvent::replaceThreadContext(oldTC, newTC);
 
-        assert(newTC->contextId() == oldTC->contextId());
-        assert(newTC->threadId() == oldTC->threadId());
-        system->replaceThreadContext(newTC, newTC->contextId());
+          assert(newTC->contextId() == oldTC->contextId());
+          assert(newTC->threadId() == oldTC->threadId());
+          system->replaceThreadContext(newTC, newTC->contextId());
 
-        /* This code no longer works since the zero register (e.g.,
-         * r31 on Alpha) doesn't necessarily contain zero at this
-         * point.
-           if (DTRACE(Context))
-            ThreadContext::compare(oldTC, newTC);
-        */
+          /* This code no longer works since the zero register (e.g.,
+           * r31 on Alpha) doesn't necessarily contain zero at this
+           * point.
+             if (DTRACE(Context))
+              ThreadContext::compare(oldTC, newTC);
+          */
 
-        BaseMasterPort *old_itb_port = oldTC->getITBPtr()->getMasterPort();
-        BaseMasterPort *old_dtb_port = oldTC->getDTBPtr()->getMasterPort();
-        BaseMasterPort *new_itb_port = newTC->getITBPtr()->getMasterPort();
-        BaseMasterPort *new_dtb_port = newTC->getDTBPtr()->getMasterPort();
+          BaseMasterPort *old_itb_port = oldTC->getITBPtr()->getMasterPort();
+          BaseMasterPort *old_dtb_port = oldTC->getDTBPtr()->getMasterPort();
+          BaseMasterPort *new_itb_port = newTC->getITBPtr()->getMasterPort();
+          BaseMasterPort *new_dtb_port = newTC->getDTBPtr()->getMasterPort();
 
-        // Move over any table walker ports if they exist
-        if (new_itb_port) {
+          // Move over any table walker ports if they exist
+          if (new_itb_port) {
             assert(!new_itb_port->isConnected());
             assert(old_itb_port);
             assert(old_itb_port->isConnected());
             BaseSlavePort &slavePort = old_itb_port->getSlavePort();
             old_itb_port->unbind();
             new_itb_port->bind(slavePort);
-        }
-        if (new_dtb_port) {
+          }
+          if (new_dtb_port) {
             assert(!new_dtb_port->isConnected());
             assert(old_dtb_port);
             assert(old_dtb_port->isConnected());
             BaseSlavePort &slavePort = old_dtb_port->getSlavePort();
             old_dtb_port->unbind();
             new_dtb_port->bind(slavePort);
+          }
+          newTC->getITBPtr()->takeOverFrom(oldTC->getITBPtr());
+          newTC->getDTBPtr()->takeOverFrom(oldTC->getDTBPtr());
         }
-        newTC->getITBPtr()->takeOverFrom(oldTC->getITBPtr());
-        newTC->getDTBPtr()->takeOverFrom(oldTC->getDTBPtr());
 
         // Checker whether or not we have to transfer CheckerCPU
         // objects over in the switch
@@ -702,7 +744,8 @@ BaseCPU::takeOverFrom(BaseCPU *oldCPU)
     // ports are dangling while the old CPU has its ports connected
     // already. Unbind the old CPU and then bind the ports of the one
     // we are switching to.
-    assert(!getInstPort().isConnected());
+    //assert(!getInstPort().isConnected());
+    if (!getInstPort().isConnected()) {
     assert(oldCPU->getInstPort().isConnected());
     BaseSlavePort &inst_peer_port = oldCPU->getInstPort().getSlavePort();
     oldCPU->getInstPort().unbind();
@@ -713,6 +756,7 @@ BaseCPU::takeOverFrom(BaseCPU *oldCPU)
     BaseSlavePort &data_peer_port = oldCPU->getDataPort().getSlavePort();
     oldCPU->getDataPort().unbind();
     getDataPort().bind(data_peer_port);
+    }
 }
 
 void

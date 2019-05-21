@@ -138,6 +138,11 @@ class MemCmd
         SVEScatter,
         SVEContigLoad,
         SVEContigStore,
+        PIM,
+        PIMRead,
+        PIMWrite,
+        PIMReadResp,
+        PIMWriteResp,
         NUM_MEM_CMDS
     };
 
@@ -165,6 +170,11 @@ class MemCmd
         IsPrint,        //!< Print state matching address (for debugging)
         IsFlush,        //!< Flush the address from caches
         FromCache,      //!< Request originated from a caching agent
+        IsPIM,
+        IsPIMRead,
+        IsPIMWrite,
+        IsPIMReadResp,
+        IsPIMWriteResp,
         NUM_COMMAND_ATTRIBUTES
     };
 
@@ -226,6 +236,12 @@ class MemCmd
     bool isOriRead() const         { return IsOriR; }
     bool isOriWrite() const        { return IsOriW; }
 
+    bool isPIM() const { return testCmdAttrib(IsPIM); }
+    bool isPIMRead() const { return testCmdAttrib(IsPIMRead); }
+    bool isPIMWrite() const { return testCmdAttrib(IsPIMWrite); }
+    bool isPIMReadResp() const { return testCmdAttrib(IsPIMReadResp); }
+    bool isPIMWriteResp() const { return testCmdAttrib(IsPIMWriteResp); }
+
     /**
      * A writeback is an eviction that carries data.
      */
@@ -267,6 +283,8 @@ class MemCmd
     bool operator==(MemCmd c2) const { return (cmd == c2.cmd); }
     bool operator!=(MemCmd c2) const { return (cmd != c2.cmd); }
 };
+
+class PIMData;
 
 /**
  * A Packet is used to encapsulate a transfer between two objects in
@@ -486,6 +504,61 @@ class Packet : public Printable
         void printObj(Printable *obj);
     };
 
+    class PIMSenderState : public SenderState {
+    public:
+      enum Command {
+        CheckReady,
+        Registration,
+        Complete,
+        DataResp,
+        Control,
+      };
+
+    public:
+      Tick cycle;
+      int id;
+      int pid;
+      int procid;
+      int threadid;
+      bool physical;
+      Command command;
+      std::vector<Addr> addr;
+
+    public:
+      PIMSenderState(Tick _tick, std::vector<Addr> _addr, int _id = 0)
+          : cycle(_tick), id(_id), pid(0), procid(-1), physical(true),
+            command(Control) {
+        for (int i = 0; i < _addr.size(); i++)
+          addr.push_back(_addr[i]);
+      }
+
+      PIMSenderState(Tick _tick, Addr _addr1, Addr _addr2, Addr _addr3,
+                     int _id = 0)
+          : cycle(_tick), id(_id), pid(0), procid(-1), physical(false),
+            command(Control) {
+        addr.push_back(_addr1);
+        addr.push_back(_addr2);
+        addr.push_back(_addr3);
+      }
+      PIMSenderState(Addr _addr1, Addr _addr2, Addr _addr3, int _id)
+          : id(_id), pid(0), procid(-1), physical(true), command(Complete) {
+        addr.push_back(_addr1);
+        addr.push_back(_addr2);
+        addr.push_back(_addr3);
+      }
+      PIMSenderState(int _pid, int _procid)
+          : cycle(0), id(-1), pid(_pid), procid(_procid), physical(false),
+            command(Control) {}
+      PIMSenderState()
+          : cycle(0), id(-1), pid(-1), procid(-1), physical(false),
+            command(Control) {}
+      void setCommand(Command cmd) { command = cmd; }
+      bool isCheck() { return command == CheckReady; }
+      bool isRegistration() { return command == Registration; }
+      bool isResp() { return command == DataResp; }
+      bool isComplete() { return command == Complete; }
+    };
+
     /**
      * This packet's sender state.  Devices should use dynamic_cast<>
      * to cast to the state appropriate to the sender.  The intent of
@@ -574,6 +647,16 @@ class Packet : public Printable
     bool isFlush() const             { return cmd.isFlush(); }
 
     bool isBypass() const;
+
+    bool isPIM() const { return cmd.isPIM(); }
+    bool isPIMRead() const { return cmd.isPIMRead(); }
+    bool isPIMWrite() const { return cmd.isPIMWrite(); }
+    bool isPIMReadResp() const { return cmd.isPIMReadResp(); }
+    bool isPIMWriteResp() const { return cmd.isPIMWriteResp(); }
+    bool isWholeLineWrite(unsigned blk_size) {
+      return (cmd == MemCmd::WriteReq || cmd == MemCmd::WriteLineReq) &&
+             getOffset(blk_size) == 0 && getSize() == blk_size;
+    }
 
     //@{
     /// Snoop flags
