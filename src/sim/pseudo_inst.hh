@@ -90,6 +90,11 @@ void workbegin(ThreadContext *tc, uint64_t workid, uint64_t threadid);
 void workend(ThreadContext *tc, uint64_t workid, uint64_t threadid);
 void togglesync(ThreadContext *tc);
 
+// @PIM
+bool PIM(ThreadContext *tc, uint64_t in1, uint64_t in2, uint64_t out1);
+void PIMProcess(ThreadContext *tc, int pim_id);
+void HostProcess(ThreadContext *tc);
+
 } // namespace PseudoInst
 
 #endif // __SIM_PSEUDO_INST_HH__

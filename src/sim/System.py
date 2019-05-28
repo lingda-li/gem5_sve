@@ -121,5 +121,11 @@ class System(MemObject):
     # Provide list of domains that need to be controlled by the handler
     dvfs_handler = DVFSHandler()
 
+    # @PIM
+    # define PIM systems
+    pim_kernerls = VectorParam.PIMKernel([],"PIM kernels")
+    pim_type = Param.String("default", "used to determine if a PIM operation"
+                            "is suitable for execution")
+
     if buildEnv['USE_KVM']:
         kvm_vm = Param.KvmVM(NULL, 'KVM VM (i.e., shared memory domain)')

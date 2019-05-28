@@ -111,7 +111,8 @@ System::System(Params *p)
       thermalModel(p->thermal_model),
       _params(p),
       totalNumInsts(0),
-      instEventQueue("system instruction-based event queue")
+      instEventQueue("system instruction-based event queue"),
+      pim_type(p->pim_type)
 {
     // add self to global system list
     systemList.push_back(this);
@@ -199,6 +200,12 @@ System::System(Params *p)
     // Set back pointers to the system in all memories
     for (int x = 0; x < params()->memories.size(); x++)
         params()->memories[x]->system(this);
+
+    // @PIM
+    // init all PIM kernels/processors
+    for (const auto &pim_name : p->pim_kernerls) {
+      pim_kernels.push_back(pim_name);
+    }
 }
 
 System::~System()

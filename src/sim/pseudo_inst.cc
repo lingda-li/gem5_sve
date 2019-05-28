@@ -197,9 +197,18 @@ pseudoInst(ThreadContext *tc, uint8_t func, uint8_t subfunc)
         workend(tc, args[0], args[1]);
         break;
 
+      // @PIM PIM kernel command
       case M5OP_ANNOTATE:
+        PIM(tc, args[0], args[1], args[2]);
+        break;
+      // @PIM PIM processor command
       case M5OP_RESERVED2:
+        PIMProcess(tc, args[0]);
+        break;
+      // @PIM back to host command
       case M5OP_RESERVED3:
+        HostProcess(tc);
+        break;
       case M5OP_RESERVED4:
       case M5OP_RESERVED5:
         warn("Unimplemented m5 op (0x%x)\n", func);
@@ -714,6 +723,45 @@ workend(ThreadContext *tc, uint64_t workid, uint64_t threadid)
             exitSimLoop("work items exit count reached");
         }
     }
+}
+
+// @PIM
+bool PIM(ThreadContext *tc, uint64_t in1, uint64_t in2, uint64_t out1) {
+  std::string pim_type = tc->getCpuPtr()->system->pim_type;
+
+  if (pim_type == "default")
+    fatal("PIM Kernel command cannot be executed at none-PIM systems.");
+  if (pim_type == "cpu")
+    fatal("PIM Kernel command cannot be executed when in-memory processing "
+          "units are processors.");
+
+  return tc->getCpuPtr()->PIMCommand(tc, in1, in2, out1);
+}
+
+void PIMProcess(ThreadContext *tc, int pim_id) {
+  std::string pim_type = tc->getCpuPtr()->system->pim_type;
+
+  if (pim_type == "default")
+    fatal("PIMProcess command cannot be executed at none-PIM systems.");
+  if (pim_type == "kernel")
+    fatal("PIMProcess command cannot be executed when in-memory processing "
+          "units are logic.");
+
+  tc->getCpuPtr()->PIMProcess(tc, pim_id);
+}
+
+void HostProcess(ThreadContext *tc) {
+  std::string pim_type = tc->getCpuPtr()->system->pim_type;
+
+  if (pim_type == "default")
+    fatal("HostProcess command cannot be executed at none-PIM systems.");
+  if (pim_type == "kernel")
+    fatal("HostProcess command cannot be executed when in-memory processing "
+          "units are logic.");
+  if (!tc->getCpuPtr()->ispim)
+    fatal("HostProcess command cannot be executed at host-side processors.");
+
+  tc->getCpuPtr()->HostProcess(tc);
 }
 
 } // namespace PseudoInst

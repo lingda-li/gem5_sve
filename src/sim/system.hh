@@ -62,6 +62,8 @@
 #include "mem/port.hh"
 #include "mem/port_proxy.hh"
 #include "params/System.hh"
+// @PIM
+#include "pim/pim_kernel.hh"
 #include "sim/futex_map.hh"
 #include "sim/se_signal.hh"
 
@@ -582,6 +584,10 @@ class System : public MemObject
      */
     virtual void unserializeSymtab(CheckpointIn &cp) {}
 
+  public:
+    // @PIM
+    std::vector<PIMKernel*> pim_kernels;
+    std::string pim_type;
 };
 
 void printSystems();
