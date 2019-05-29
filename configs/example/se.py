@@ -127,6 +127,10 @@ parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
+# @PIM
+Options.addPIMOptions(parser)
+Options.add_hmc_options(parser)
+
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 

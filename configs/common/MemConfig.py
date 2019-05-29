@@ -38,7 +38,10 @@
 
 from __future__ import print_function
 
-import m5.objects
+#import m5.objects
+import m5
+from m5.objects import *
+from m5.util import *
 import inspect
 import sys
 import HMC
@@ -214,6 +217,10 @@ def config_mem(options, system):
     # For every range (most systems will only have one), create an
     # array of controllers and set their parameters to match their
     # address mapping in the case of a DRAM
+    # @PIM
+    # if we use PIM, we should get the memory ranges in order to
+    # differentiate phyical memory and in-memory logic/processors
+    addr_base = 0
     for r in system.mem_ranges:
         for i in xrange(nbr_mem_ctrls):
             mem_ctrl = create_mem_ctrl(cls, r, i, nbr_mem_ctrls, intlv_bits,
@@ -228,9 +235,104 @@ def config_mem(options, system):
                 print("For elastic trace, over-riding Simple Memory "
                     "latency to 1ns.")
 
+            if hasattr(options,'enable_pim') and options.enable_pim:
+                mem_ctrl.cpu_type = options.cpu_type
+                mem_ctrl.coherence_granularity=options.coherence_granularity
             mem_ctrls.append(mem_ctrl)
 
+            # @PIM
+            # If the memory consists of more than two controller, the ranges
+            # may be separated. It is Thus, we should find the
+            if long(r.end) > addr_base:
+                addr_base = r.end
+
     subsystem.mem_ctrls = mem_ctrls
+
+    if options.mem_type.startswith("HMC"):
+        print("xxx")
+        addr_base = int(MemorySize(options.hmc_dev_vault_size))*\
+                options.hmc_dev_num_vaults - 1
+        print(addr_base)
+    # @PIM
+    # define in-memory processing units here
+    addr_base = addr_base + 1
+    if(hasattr(options,'enable_pim')):
+        print ("Enable PIM simulation in the system.")
+
+        pim_type = options.pim_type
+        num_kernels = options.num_pim_kernels
+        num_processors = options.num_pim_processors
+        num_pim_logic = num_kernels + num_processors
+
+        if num_pim_logic <= 0:
+            fatal ("The num of PIM logic/processors cannot be zero while"
+                   "enabling PIM.")
+        if options.mem_type.startswith("HMC"):
+            if num_kernels>0:
+                num_kernels=16
+                num_processors=0
+            else:
+                num_processors=16
+                num_kernels=0
+        system.pim_type = pim_type
+        # let host-side processors know the address of PIM logic
+        for cpu in system.cpu:
+            cpu.pim_base_addr = addr_base
+
+        # memory contains kernels
+        if pim_type != "cpu" and num_kernels > 0:
+            pim_kernerls = []
+            print ("Creating PIM kernels...")
+            for pid in range(num_kernels):
+                if(options.kernel_type=="adder"):
+                    _kernel = PIMAdder()
+                else:
+                    if(options.kernel_type=="multiplier"):
+                        _kernel = PIMMultiplier()
+                    else:
+                        if(options.kernel_type=="divider"):
+                            _kernel = PIMDivider()
+                        else:
+                            fatal("no pim kernel type specified.")
+                vd = VoltageDomain(voltage="1.0V")
+                _kernel.clk_domain = SrcClockDomain(
+                        clock="1GHz", voltage_domain=vd)
+                _kernel.id = pid
+
+                # Currently, we use only one bit for accessing a PIM kernel.
+                # Detailed PIM information is defined inside the packet
+                # at mem/packet.hh(cc)
+                _kernel.addr_ranges = AddrRange(
+                        addr_base + pid, addr_base + pid)
+                _kernel.addr_base = addr_base
+
+                if options.mem_type.startswith("DDR"):
+                    # connect to the memory bus if the memory is DRAM
+                    _kernel.port = xbar.slave
+                    _kernel.mem_port = xbar.master
+                if options.mem_type.startswith("HMC"):
+                    _kernel.port = system.membus.slave
+                    _kernel.mem_port = system.membus.master
+                pim_kernerls.append(_kernel)
+            system.pim_kernerls = pim_kernerls
+
+        # memory contains processors
+        if pim_type != "kernel" and num_processors > 0:
+            system.pim_cpu = TimingSimpleCPU(ispim =True,
+                    total_host_cpu = options.num_cpus, switched_out =True)
+            pim_vd = VoltageDomain(voltage="1.0V")
+            system.pim_cpu.clk_domain = SrcClockDomain(clock = '1GHz',
+                    voltage_domain = pim_vd)
+            print ("Creating PIM processors...")
+
+            system.pim_cpu.icache_port = system.membus.slave
+            system.pim_cpu.dcache_port = system.membus.slave
+            system.pim_cpu.workload = system.cpu[0].workload[0]
+
+            system.pim_cpu.isa = [default_isa_class()]
+
+        if pim_type == "hybrid":
+            fatal ("PIM logic is set to hybrid without configured")
 
     # Connect the controllers to the membus
     for i in xrange(len(subsystem.mem_ctrls)):

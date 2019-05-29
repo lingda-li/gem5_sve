@@ -60,7 +60,8 @@ using namespace std;
 AbstractMemory::AbstractMemory(const Params *p) :
     MemObject(p), range(params()->range), pmemAddr(NULL),
     confTableReported(p->conf_table_reported), inAddrMap(p->in_addr_map),
-    kvmMap(p->kvm_map), _system(NULL)
+    kvmMap(p->kvm_map), _system(NULL), cpu_type(p->cpu_type),
+    coherence_granularity(p->coherence_granularity)
 {
 }
 
@@ -499,13 +500,12 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
         simplecpu->activateContext(
             (*(simplecpu->threadInfo[simplecpu->curThread]))
                 .thread->contextId());
+      } else if (this->cpu_type == "DerivO3CPU") {
+        cpu->activateContext(threadid);
       } else {
-        if (this->cpu_type == "DerivO3CPU") {
-          cpu->activateContext(threadid);
-        } else {
-          fatal("Base CPU cannot process PIM.");
-        }
+        fatal("Base CPU cannot process PIM.");
       }
+
       pendingPIMqueue.erase(index);
     }
 

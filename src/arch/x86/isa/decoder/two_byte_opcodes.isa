@@ -208,13 +208,24 @@
                               RIP);
                     }}, IsNonSpeculative);
                     0x55: m5reserved1({{
-                        warn("M5 reserved opcode 1 ignored.\n");
-                    }}, IsNonSpeculative);
+                        // PIM kernel command
+                        // only available when target is PIM kernel
+                        PseudoInst::PIM(xc->tcBase(), Rdi, Rsi, Rdx);
+                    }}, IsNonSpeculative, IsQuiesce);
                     0x56: m5reserved2({{
-                        warn("M5 reserved opcode 2 ignored.\n");
+                        // @PIM
+                        // PIM proceess command
+                        // Indicate the following instructions are executed at
+                        // in-memory processors
+                        // Rdi -> target in-memory processor id
+                        PseudoInst::PIMProcess(xc->tcBase(), Rdi);
                     }}, IsNonSpeculative);
                     0x57: m5reserved3({{
-                        warn("M5 reserved opcode 3 ignored.\n");
+                        // @PIM
+                        // Host process command
+                        // Indicate the following instructions are executed
+                        // at host-side
+                        PseudoInst::HostProcess(xc->tcBase());
                     }}, IsNonSpeculative);
                     0x58: m5reserved4({{
                         warn("M5 reserved opcode 4 ignored.\n");

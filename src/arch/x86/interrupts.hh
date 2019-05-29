@@ -299,6 +299,10 @@ class Interrupts : public BasicPioDevice, IntDevice
     {
         panic("Interrupts::clearAll unimplemented!\n");
     }
+
+  public:
+    // @PIM
+    bool pim;
 };
 
 } // namespace X86ISA

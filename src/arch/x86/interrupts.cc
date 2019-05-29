@@ -280,7 +280,11 @@ X86ISA::Interrupts::setCPU(BaseCPU * newCPU)
                 " with different IDs.\n");
     }
     cpu = newCPU;
-    initialApicId = cpu->cpuId();
+    if (!cpu->ispim) {
+      initialApicId = cpu->cpuId();
+    } else {
+      initialApicId = cpu->total_host_cpu + cpu->cpuId();
+    }
     regs[APIC_ID] = (initialApicId << 24);
     pioAddr = x86LocalAPICAddress(initialApicId, 0);
 }
@@ -596,7 +600,8 @@ X86ISA::Interrupts::Interrupts(Params * p)
       pendingStartup(false), startupVector(0),
       startedUp(false), pendingUnmaskableInt(false),
       pendingIPIs(0), cpu(NULL),
-      intSlavePort(name() + ".int_slave", this, this)
+      intSlavePort(name() + ".int_slave", this, this),
+      pim(p->pim)
 {
     memset(regs, 0, sizeof(regs));
     //Set the local apic DFR to the flat model.

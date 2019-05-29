@@ -51,3 +51,4 @@ class X86LocalApic(BasicPioDevice):
     int_slave = SlavePort("Port for receiving interrupt messages")
     int_latency = Param.Latency('1ns', \
             "Latency for an interrupt to propagate through this device.")
+    pim = Param.Bool(False, "To indicate the interrupt is served by PIM.")

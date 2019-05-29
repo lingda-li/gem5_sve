@@ -1072,7 +1072,6 @@ TimingSimpleCPUParams::create()
 }
 
 bool TimingSimpleCPU::stopCurrent(PacketPtr pkt, int id) {
-
   AbstractMemory *mem = (AbstractMemory *)SimObject::find("system.mem_ctrls");
   if (!mem) {
     mem = (AbstractMemory *)SimObject::find("system.hmc_dev.mem_ctrls00");
@@ -1088,6 +1087,7 @@ bool TimingSimpleCPU::stopCurrent(PacketPtr pkt, int id) {
   }
   return false;
 }
+
 bool TimingSimpleCPU::PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
                                  uint64_t out1) {
   // setDebugFlag("IsaFake");
