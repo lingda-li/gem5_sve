@@ -256,7 +256,7 @@ def config_mem(options, system):
     # @PIM
     # define in-memory processing units here
     addr_base = addr_base + 1
-    if(hasattr(options,'enable_pim')):
+    if(hasattr(options,'enable_pim')) and options.enable_pim:
         print ("Enable PIM simulation in the system.")
 
         pim_type = options.pim_type
@@ -266,7 +266,7 @@ def config_mem(options, system):
 
         if num_pim_logic <= 0:
             fatal ("The num of PIM logic/processors cannot be zero while"
-                   "enabling PIM.")
+                   " enabling PIM.")
         if options.mem_type.startswith("HMC"):
             if num_kernels>0:
                 num_kernels=16
