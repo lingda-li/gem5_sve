@@ -340,6 +340,7 @@ class SveStStructSI : public PredMacroOp
 
 template <typename RegElemType, typename MemElemType,
           template <typename, typename> class MicroopType,
+          template <typename, typename> class PIMMicroopType,
           template <typename> class FirstFaultWritebackMicroopType>
 class SveIndexedMemVI : public PredMacroOp
 {
@@ -436,6 +437,7 @@ class SveIndexedMemVI : public PredMacroOp
 
 template <typename RegElemType, typename MemElemType,
           template <typename, typename> class MicroopType,
+          template <typename, typename> class PIMMicroopType,
           template <typename> class FirstFaultWritebackMicroopType>
 class SveIndexedMemSV : public PredMacroOp
 {

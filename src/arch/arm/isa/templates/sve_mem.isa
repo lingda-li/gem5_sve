@@ -401,6 +401,8 @@ def template SveIndexedMemVIMicroopDeclare {{
 
         unsigned memAccessFlags;
 
+        bool isPIM;
+
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
             OpClass __opClass, IntRegIndex _dest, IntRegIndex _gp,
@@ -414,6 +416,7 @@ def template SveIndexedMemVIMicroopDeclare {{
                              ArmISA::TLB::MustBeOne)
         {
             %(constructor)s;
+            %(pim_init_code)s;
             if (_opClass == MemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
@@ -479,6 +482,8 @@ def template SveIndexedMemSVMicroopDeclare {{
 
         unsigned memAccessFlags;
 
+        bool isPIM;
+
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
             OpClass __opClass, IntRegIndex _dest, IntRegIndex _gp,
@@ -494,6 +499,7 @@ def template SveIndexedMemSVMicroopDeclare {{
                              ArmISA::TLB::MustBeOne)
         {
             %(constructor)s;
+            %(pim_init_code)s;
             if (_opClass == MemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
@@ -557,6 +563,7 @@ def template SveGatherLoadMicroopExecute {{
                 this->memAccessFlags);
         }
 
+        // FIXME: PIM does not work
         if (fault == NoFault) {
             %(fault_status_reset_code)s;
             %(memacc_code)s;
@@ -601,8 +608,16 @@ def template SveGatherLoadMicroopInitiateAcc {{
 
         int index = elemIndex;
         if (%(pred_check_code)s) {
-            fault = initiateMemRead(xc, traceData, EA, memData,
-                this->memAccessFlags);
+            if (isPIM) {
+              Request::Flags memAccessFlags = this->memAccessFlags |
+                  Request::CLEAN | Request::INVALIDATE | Request::DST_POC;
+              System *sys = xc->tcBase()->getSystemPtr();
+              Addr op_size = sys->cacheLineSize();
+              EA &= ~(op_size - 1);
+              fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
+            } else
+              fault = initiateMemRead(xc, traceData, EA, memData,
+                  this->memAccessFlags);
             if (fault != NoFault) {
                 %(fault_status_set_code)s;
                 if (firstFault) {
@@ -631,6 +646,8 @@ def template SveGatherLoadMicroopCompleteAcc {{
     Fault %(class_name)s%(tpl_args)s::completeAcc(PacketPtr pkt,
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
+        if (isPIM)
+          return NoFault;
         bool aarch64 M5_VAR_USED = true;
 
         %(op_decl)s;
@@ -666,6 +683,7 @@ def template SveScatterStoreMicroopExecute {{
         MemElemType memData;
         %(memacc_code)s;
 
+        // FIXME: PIM does not work
         int index = elemIndex;
         if (%(pred_check_code)s) {
             fault = writeMemAtomic(xc, traceData, memData, EA,
@@ -698,8 +716,16 @@ def template SveScatterStoreMicroopInitiateAcc {{
 
         int index = elemIndex;
         if (%(pred_check_code)s) {
-            fault = writeMemTiming(xc, traceData, memData, EA,
-                                   this->memAccessFlags, NULL);
+            if (isPIM) {
+              Request::Flags memAccessFlags = this->memAccessFlags |
+                  Request::CLEAN | Request::INVALIDATE | Request::DST_POC;
+              System *sys = xc->tcBase()->getSystemPtr();
+              Addr op_size = sys->cacheLineSize();
+              EA &= ~(op_size - 1);
+              fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
+            } else
+              fault = writeMemTiming(xc, traceData, memData, EA,
+                                     this->memAccessFlags, NULL);
         } else {
             xc->setPredicate(false);
         }

@@ -54,6 +54,8 @@
 #include "cpu/translation.hh"
 #include "mem/request.hh"
 
+#define SVE_SG_PIM
+
 /**
  * The ExecContext is an abstract base class the provides the
  * interface used by the ISA to manipulate the state of the CPU model.

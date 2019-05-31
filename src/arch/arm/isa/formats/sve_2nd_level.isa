@@ -2974,6 +2974,7 @@ namespace Aarch64
                         return
                            new SveIndexedMemSV<uint32_t, uint16_t,
                                                SveGatherLoadSVMicroop,
+                                               SvePIMGatherLoadSVMicroop,
                                                SveFirstFaultWritebackMicroop>(
                             ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg,
                             rn, zm, true, xs, true, ff);
@@ -2981,6 +2982,7 @@ namespace Aarch64
                         return
                            new SveIndexedMemSV<int32_t, int16_t,
                                                SveGatherLoadSVMicroop,
+                                               SvePIMGatherLoadSVMicroop,
                                                SveFirstFaultWritebackMicroop>(
                             ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg,
                             rn, zm, true, xs, true, ff);
@@ -3003,6 +3005,7 @@ namespace Aarch64
                     uint8_t ff = bits(machInst, 13);
                     return new SveIndexedMemSV<uint32_t, uint32_t,
                                                SveGatherLoadSVMicroop,
+                                               SvePIMGatherLoadSVMicroop,
                                                SveFirstFaultWritebackMicroop>(
                         ff ? "ldff1" : "ld1", machInst, MemReadOp, zt, pg, rn,
                         zm, true, xs, true, ff);
