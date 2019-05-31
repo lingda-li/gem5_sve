@@ -1282,6 +1282,24 @@ let {{
                              else 'SveScatterStoreSVMicroop')}
             # TODO: this should become SveMemExecDeclare
             exec_output += SveContigMemExecDeclare.subst(substDict)
+        for args in gatherLoadTplArgs:
+            substDict = {'tpl_args': '<%s>' % ', '.join(args),
+                         'class_name': (
+                             'SvePIMGatherLoadVIMicroop'
+                             if indexed_addr_form == \
+                                 IndexedAddrForm.VEC_PLUS_IMM
+                             else 'SvePIMGatherLoadSVMicroop')}
+            # TODO: this should become SveMemExecDeclare
+            exec_output += SveContigMemExecDeclare.subst(substDict)
+        for args in scatterStoreTplArgs:
+            substDict = {'tpl_args': '<%s>' % ', '.join(args),
+                         'class_name': (
+                             'SvePIMScatterStoreVIMicroop'
+                             if indexed_addr_form == \
+                                 IndexedAddrForm.VEC_PLUS_IMM
+                             else 'SvePIMScatterStoreSVMicroop')}
+            # TODO: this should become SveMemExecDeclare
+            exec_output += SveContigMemExecDeclare.subst(substDict)
 
 
     firstFaultTplArgs = ('int32_t', 'int64_t', 'uint32_t', 'uint64_t')
