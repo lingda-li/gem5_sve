@@ -43,6 +43,8 @@
 #include "arch/arm/generated/decoder.hh"
 #include "arch/arm/insts/pred_inst.hh"
 
+//#define SVE_SG_PIM
+
 namespace ArmISA {
 
 template <typename Element,
