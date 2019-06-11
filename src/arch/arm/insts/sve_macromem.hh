@@ -372,6 +372,9 @@ class SveIndexedMemVI : public PredMacroOp
                 numMicroops++;
             }
         }
+#ifdef SVE_SG_PIM
+        numMicroops += num_elems;
+#endif
 
         microOps = new StaticInstPtr[numMicroops];
 
@@ -388,11 +391,18 @@ class SveIndexedMemVI : public PredMacroOp
             uop++;
         }
 
-        for (int i = 0; i < num_elems; i++, uop++) {
 #ifdef SVE_SG_PIM
-          printf("IVHello %d\n", num_elems);
-#else
+        printf("IVHello %d\n", num_elems);
+        for (int i = 0; i < num_elems; i++, uop++) {
+            *uop = new PIMMicroopType<RegElemType, MemElemType>(
+                mnem, machInst, __opClass, _dest, _gp,
+                isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
+                num_elems, firstFault);
+            (*uop)->setFlag(IsSVE);
+        }
 #endif
+
+        for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new MicroopType<RegElemType, MemElemType>(
                 mnem, machInst, __opClass, _dest, _gp,
                 isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
@@ -501,7 +511,7 @@ class SveIndexedMemSV : public PredMacroOp
         }
 
 #ifdef SVE_SG_PIM
-        printf("GHello %d\n", num_elems);
+        printf("SVHello %d\n", num_elems);
         for (int i = 0; i < num_elems; i++, uop++) {
             *uop = new PIMMicroopType<RegElemType, MemElemType>(
                 mnem, machInst, __opClass, _dest, _gp, _base,

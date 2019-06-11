@@ -275,13 +275,13 @@ MemCmd::Command MemCmd::toActualCmd() const {
 }
 
 bool Packet::isBypass() const {
+    return false;
     // Requests from CPU
     if (cmd == MemCmd::ReadReq || cmd == MemCmd::WriteReq)
         return false;
     // SVE gather requests
     else if (cmd.isSVE() && cmd.isSG() && cmd.isRead())
         return true;
-    return false;
 }
 
 bool
