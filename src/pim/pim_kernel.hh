@@ -36,13 +36,13 @@ public:
   // current status of the registers
   enum DataStatus {
     dataEmpty,       // initial status
-    dataReady,       // the address is given
+    addrReady,       // the address is given
     dataWaitingResp, // the read/write packet to the address is sent but not
                      // response
     dataFinish       // the result is read/written
   };
 
-  typedef uint64_t dataType;
+  typedef int64_t dataType;
 
 protected:
   // basic master port to operate data in the memory
@@ -105,9 +105,14 @@ protected:
 
     void recvFunctional(PacketPtr pkt);
 
-    bool recvTimingReq(PacketPtr);
+    bool recvTimingReq(PacketPtr pkt);
 
     virtual AddrRangeList getAddrRanges() const;
+
+  private:
+    void processSendRetry();
+
+    EventFunctionWrapper sendRetryEvent;
   };
 
   PIMMasterPort port;
@@ -128,8 +133,16 @@ protected:
   typedef PIMKernel::dataType Regs;
   std::vector<pair<Regs, DataStatus>> regs;
 
+  // Addresses
+  std::vector<Addr> addrs;
+
   // all data are stored here
   std::vector<Regs> data;
+  uint8_t *raw_data;
+
+  // size of the current data
+  size_t size;
+  int num; // number of elements
 
   std::vector<Packet::PIMSenderState *> pendingPIMqueue;
 

@@ -1170,6 +1170,11 @@ TLB::translateAtomic(RequestPtr req, ThreadContext *tc, Mode mode,
 
     bool delay = false;
     Fault fault;
+    // PIM access, virtual address equals to physical address
+    if (req->getFlags() & Request::PIM) {
+      req->setPaddr(req->getVaddr());
+      return NoFault;
+    }
     if (FullSystem)
         fault = translateFs(req, tc, mode, NULL, delay, false, tranType);
     else
@@ -1191,6 +1196,11 @@ TLB::translateFunctional(RequestPtr req, ThreadContext *tc, Mode mode,
 
     bool delay = false;
     Fault fault;
+    // PIM access, virtual address equals to physical address
+    if (req->getFlags() & Request::PIM) {
+      req->setPaddr(req->getVaddr());
+      return NoFault;
+    }
     if (FullSystem)
         fault = translateFs(req, tc, mode, NULL, delay, false, tranType, true);
    else
@@ -1223,6 +1233,11 @@ TLB::translateComplete(RequestPtr req, ThreadContext *tc,
 {
     bool delay = false;
     Fault fault;
+    // PIM access, virtual address equals to physical address
+    if (req->getFlags() & Request::PIM) {
+      req->setPaddr(req->getVaddr());
+      return NoFault;
+    }
     if (FullSystem)
         fault = translateFs(req, tc, mode, translation, delay, true, tranType);
     else

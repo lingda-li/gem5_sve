@@ -447,33 +447,39 @@ void
 AbstractMemory::functionalAccess(PacketPtr pkt)
 {
   if (pkt->isPIM()) {
+    DPRINTF(PIM, "PIM instruction\n");
     Packet::PIMSenderState *senderState =
         dynamic_cast<Packet::PIMSenderState *>(pkt->senderState);
     assert(senderState);
+    auto addrs = senderState->addr;
 
     if (senderState->isRegistration()) {
       pendingPIMqueue.push_back(senderState);
 
-      DPRINTF(
-          PIM, "Add PIM operations to the Queue [0x%lx] [0x%lx] -> [0x%lx]\n",
-          senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+      if (addrs.size() == 3)
+        DPRINTF(
+            PIM, "Add PIM operation to queue [0x%lx] [0x%lx] -> [0x%lx]\n",
+            senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+      else
+        DPRINTF(PIM, "Add PIM operation to queue [0x%lx]\n", addrs[0]);
 
       pkt->popLabel();
 
       delete pkt;
-    }
-    if (senderState->isComplete()) {
-      DPRINTF(
-          PIM,
-          "Remove PIM operations from the Queue [0x%lx] [0x%lx] -> [0x%lx]\n",
-          senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+    } else if (senderState->isComplete()) {
+      if (addrs.size() == 3)
+        DPRINTF(
+            PIM, "Remove PIM operation from queue [0x%lx] [0x%lx]->[0x%lx]\n",
+            senderState->addr[0], senderState->addr[1], senderState->addr[2]);
+      else
+        DPRINTF(PIM, "Remove PIM operation from queue [0x%lx]\n", addrs[0]);
       bool found = false;
       bool threadid = -1;
       std::vector<Packet::PIMSenderState *>::iterator index;
       for (auto i = pendingPIMqueue.begin(); i != pendingPIMqueue.end(); i++) {
         if ((*i)->addr[0] == senderState->addr[0] &&
-            (*i)->addr[0] == senderState->addr[0] &&
-            (*i)->addr[0] == senderState->addr[0]) {
+            (*i)->addr[1] == senderState->addr[1] &&
+            (*i)->addr[2] == senderState->addr[2]) {
           found = true;
           index = i;
           threadid = (*i)->threadid;
@@ -482,29 +488,30 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
       }
       assert(found && threadid >= 0);
 
-      BaseCPU *cpu = (BaseCPU *)SimObject::find("system.cpu");
-      if (!cpu) {
-        cpu = (BaseCPU *)SimObject::find(
-            ("system.cpu" + to_string(threadid)).data());
-      }
-      assert(cpu);
-      for (int i = 0; i < cpu->pCaches.size(); i++) {
-        for (int j = 0; j < 3; j++) {
-          if (cpu->pCaches[i]->check_addr((*index)->addr[j])) {
-            cpu->pCaches[i]->flushPIM((*index)->addr[j]);
-          }
-        }
-      }
-      if (this->cpu_type == "TimingSimpleCPU") {
-        TimingSimpleCPU *simplecpu = (TimingSimpleCPU *)cpu;
-        simplecpu->activateContext(
-            (*(simplecpu->threadInfo[simplecpu->curThread]))
-                .thread->contextId());
-      } else if (this->cpu_type == "DerivO3CPU") {
-        cpu->activateContext(threadid);
-      } else {
-        fatal("Base CPU cannot process PIM.");
-      }
+      //BaseCPU *cpu = (BaseCPU *)SimObject::find("system.cpu");
+      //if (!cpu) {
+      //  cpu = (BaseCPU *)SimObject::find(
+      //      ("system.cpu" + to_string(threadid)).data());
+      //}
+      //assert(cpu);
+      //for (int i = 0; i < cpu->pCaches.size(); i++) {
+      //  for (int j = 0; j < 3; j++) {
+      //    if (cpu->pCaches[i]->check_addr((*index)->addr[j])) {
+      //      cpu->pCaches[i]->flushPIM((*index)->addr[j]);
+      //    }
+      //  }
+      //}
+      //if (this->cpu_type == "TimingSimpleCPU") {
+      //  TimingSimpleCPU *simplecpu = (TimingSimpleCPU *)cpu;
+      //  simplecpu->activateContext(
+      //      (*(simplecpu->threadInfo[simplecpu->curThread]))
+      //          .thread->contextId());
+      //} else if (this->cpu_type == "DerivO3CPU" ||
+      //           this->cpu_type == "O3_ARM_v7a_3") {
+      //  cpu->activateContext(threadid);
+      //} else {
+      //  fatal("Base CPU cannot process PIM.");
+      //}
 
       pendingPIMqueue.erase(index);
     }

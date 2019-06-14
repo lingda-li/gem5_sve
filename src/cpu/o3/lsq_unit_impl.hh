@@ -1068,12 +1068,12 @@ LSQUnit<Impl>::trySendPacket(bool isLoad, PacketPtr data_pkt)
     if (!lsq->cacheBlocked() &&
         ((isLoad && lsq->cachePortAvailable(true)) ||
          (!isLoad && lsq->cachePortAvailable(false)))) {
-            if (!dcachePort->sendTimingReq(data_pkt)) {
-                ret = false;
-                cache_got_blocked = true;
-            }
-        } else {
+      if (!dcachePort->sendTimingReq(data_pkt)) {
         ret = false;
+        cache_got_blocked = true;
+      }
+    } else {
+      ret = false;
     }
 
     if (ret) {

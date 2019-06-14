@@ -328,6 +328,12 @@ LSQ<Impl>::recvTimingResp(PacketPtr pkt)
         thread.at(cpu->contextToThread(senderState->contextId()))
             .recvTimingResp(pkt);
     } else {
+      auto senderState =
+          dynamic_cast<Packet::PIMSenderState *>(pkt->senderState);
+      if (senderState) {
+        delete pkt;
+        return true;
+      } else
         panic("Got packet back with unknown sender state\n");
     }
 

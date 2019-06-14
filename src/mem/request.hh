@@ -200,6 +200,9 @@ class Request
         SVE                         = 0x0000004000000000,
         SG                          = 0x0000008000000000,
 
+        /* PIM bit */
+        PIM                         = 0x0000010000000000,
+
         /**
          * These flags are *not* cleared when a Request object is
          * reused (assigned a new address).

@@ -37,10 +37,10 @@ class PIMKernel(MemObject):
     id = Param.Int(0, "ID of the kernel")
     latency = Param.Latency("1ns", "Calculation delay")
 
-    input = Param.Int(2, "inputs")
+    input = Param.Int(256, "inputs")
 
     # the output is set to 1 by default
-    output = Param.Int(1, "outputs")
+    output = Param.Int(0, "outputs")
 
     port = MasterPort("Upstream port closer to memory")
 

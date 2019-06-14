@@ -401,7 +401,11 @@ def template SveIndexedMemVIMicroopDeclare {{
 
         unsigned memAccessFlags;
 
-        bool isPIM;
+        // 0: normal scatter/gather
+        // 1: clean/invalidate
+        // 2: send address to PIM
+        // 3: get data from PIM
+        int PIMType;
 
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
@@ -482,7 +486,11 @@ def template SveIndexedMemSVMicroopDeclare {{
 
         unsigned memAccessFlags;
 
-        bool isPIM;
+        // 0: normal scatter/gather
+        // 1: clean/invalidate
+        // 2: send address to PIM
+        // 3: get data from PIM
+        int PIMType;
 
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
@@ -608,13 +616,22 @@ def template SveGatherLoadMicroopInitiateAcc {{
 
         int index = elemIndex;
         if (%(pred_check_code)s) {
-            if (isPIM) {
-              Request::Flags memAccessFlags = this->memAccessFlags |
-                  Request::CLEAN | Request::INVALIDATE | Request::DST_POC;
-              System *sys = xc->tcBase()->getSystemPtr();
-              Addr op_size = sys->cacheLineSize();
-              EA &= ~(op_size - 1);
-              fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
+            if (PIMType == 1) {
+              auto *tc = xc->tcBase();
+              auto *cpu = tc->getCpuPtr();
+              cpu->PIMScatterGather(tc, EA, sizeof(MemElemType), elemIndex,
+                                    numElems, true);
+              //Request::Flags memAccessFlags = this->memAccessFlags |
+              //    Request::CLEAN | Request::INVALIDATE | Request::DST_POC;
+              //System *sys = xc->tcBase()->getSystemPtr();
+              //Addr op_size = sys->cacheLineSize();
+              //EA &= ~(op_size - 1);
+              //fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
+            } else if (PIMType == 2) {
+              auto *tc = xc->tcBase();
+              auto *cpu = tc->getCpuPtr();
+              cpu->PIMScatterGather(tc, EA, sizeof(MemElemType), elemIndex,
+                                    numElems, true);
             } else
               fault = initiateMemRead(xc, traceData, EA, memData,
                   this->memAccessFlags);
@@ -637,6 +654,16 @@ def template SveGatherLoadMicroopInitiateAcc {{
             %(fault_status_reset_code)s;
         }
 
+        //// Last op collects data from PIM
+        //if (PIMType == 1 && elemIndex == numElems - 1) {
+        //  auto *tc = xc->tcBase();
+        //  auto *cpu = tc->getCpuPtr();
+        //  Request::Flags memAccessFlags =
+        //      this->memAccessFlags | Request::UNCACHEABLE | Request::PIM;
+        //  fault = initiateMemRead(xc, traceData, cpu->pim_addr_base, memData,
+        //                          memAccessFlags);
+        //}
+
         return fault;
     }
 }};
@@ -646,7 +673,8 @@ def template SveGatherLoadMicroopCompleteAcc {{
     Fault %(class_name)s%(tpl_args)s::completeAcc(PacketPtr pkt,
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
-        if (isPIM)
+        if (PIMType == 1)
+        //if (PIMType == 1 && elemIndex < numElems - 1)
           return NoFault;
         bool aarch64 M5_VAR_USED = true;
 
@@ -716,7 +744,7 @@ def template SveScatterStoreMicroopInitiateAcc {{
 
         int index = elemIndex;
         if (%(pred_check_code)s) {
-            if (isPIM) {
+            if (PIMType == 1) {
               Request::Flags memAccessFlags = this->memAccessFlags |
                   Request::CLEAN | Request::INVALIDATE | Request::DST_POC;
               System *sys = xc->tcBase()->getSystemPtr();

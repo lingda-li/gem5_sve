@@ -836,6 +836,11 @@ class FullO3CPU : public BaseO3CPU
     void PIMProcess(ThreadContext *tc, int pim_id) override;
     void HostProcess(ThreadContext *tc) override;
     void retryPIM() override;
+    bool PIMScatterGather(ThreadContext *tc, uint64_t addr, size_t size,
+                          int idx, int num, bool isread) override;
+
+  private:
+    std::vector<Addr> PIMAddrs;
 };
 
 #endif // __CPU_O3_CPU_HH__

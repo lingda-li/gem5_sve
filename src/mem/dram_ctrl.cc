@@ -2755,11 +2755,11 @@ DRAMCtrl::MemoryPort::recvAtomic(PacketPtr pkt)
 bool
 DRAMCtrl::MemoryPort::recvTimingReq(PacketPtr pkt)
 {
-  if (!pkt->isPIM() && (pkt->isRead() || pkt->isWrite()) &&
-      memory.stalledAddr(pkt)) {
-    DPRINTF(PIM, "Packet blocked by coherence [%llx]\n", pkt->getAddr());
-    return false;
-  }
+  //if (!pkt->isPIM() && (pkt->isRead() || pkt->isWrite()) &&
+  //    memory.stalledAddr(pkt)) {
+  //  DPRINTF(PIM, "Packet blocked by coherence [%llx]\n", pkt->getAddr());
+  //  return false;
+  //}
 
     // pass it to the memory controller
     return memory.recvTimingReq(pkt);

@@ -661,24 +661,31 @@ public:
     std::vector<Cache*> pCaches;
     virtual void retryPIM(){
       fatal("Base CPU cannot process PIM.");
-    };
+    }
     std::vector<Packet::PIMSenderState *> pendingPIM;
 
     virtual bool PIMCommand(ThreadContext *tc, uint64_t in1, uint64_t in2,
                             uint64_t out1) {
       fatal("Base CPU cannot process PIM.");
-    };
+    }
 
     virtual void PIMProcess(ThreadContext *tc, int pim_id){
       fatal("Base CPU cannot process PIM.");
-    };
+    }
 
     virtual void HostProcess(ThreadContext *tc){
       fatal("Base CPU cannot process PIM.");
     }
+
     virtual bool stopCurrent(PacketPtr pkt, int id){
       fatal("Base CPU cannot process PIM.");
       return false;
+    }
+
+    virtual bool PIMScatterGather(ThreadContext *tc, uint64_t addr,
+                                  size_t size, int idx, int num,
+                                  bool isread) {
+      fatal("Base CPU cannot process PIM.");
     }
 };
 

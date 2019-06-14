@@ -2083,3 +2083,89 @@ template <class Impl> void FullO3CPU<Impl>::HostProcess(ThreadContext *tc) {
 
   cpu->activateContext(0);
 }
+
+template <class Impl>
+bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
+                                       size_t size, int idx, int num,
+                                       bool isread) {
+  O3ThreadContext<Impl> *t_info = (O3ThreadContext<Impl> *)tc;
+  unsigned addr_size = 1;
+  // Fault fault;
+  // fault = t_info->getDTBPtr()->translateAtomic(req, tc, //
+  // thread->getTC(),
+  //                                             BaseTLB::Write);
+  /*
+   For TimingSimpleCPU, the address of atomic PIM operations are translated
+   by the host processors. Therefore, it suspends if a translate fault
+   happens.
+   */
+  // if (fault != NoFault) {
+  //  break;
+  //}
+  auto *tlb = dynamic_cast<TLB *>(tc->getDTBPtr());
+  assert(tlb);
+  // bool fault = tlb->translateFunctional(tc, addr, paddr);
+  RequestPtr req = new Request(
+      0, addr, addr_size, Request::NO_ACCESS | ArmISA::TLB::MustBeOne,
+      dataMasterId(), t_info->instAddr(), t_info->contextId());
+  bool fault = tlb->translateFunctional(req, tc, BaseTLB::Read);
+  assert(!fault);
+  Addr paddr = req->getPaddr();
+
+  // pimpAddr.push_back(req->getPaddr());
+  PIMAddrs.push_back(paddr);
+  DPRINTF(PIM, "PIM translates address [%llx]->[%llx]\n", addr,
+          PIMAddrs.back());
+
+  // if (fault != NoFault) {
+  //  DPRINTF(PIM, "Fault occured. Handling the fault for PIM address\n");
+  //  schedule(pimEvent, clockEdge(Cycles(1)));
+  //  return false;
+  //}
+
+  assert(!pimEvent.scheduled());
+
+  if (idx == num - 1) {
+    DPRINTF(PIM, "PIM S/G sends addresses\n");
+
+    Packet::PIMSenderState *state =
+        new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
+    Request::Flags flags = 0;
+    RequestPtr req = new Request(pim_addr_base, size, flags, 0);
+    PacketPtr pkt = new Packet(req, MemCmd::PIM);
+
+    uint8_t *empty = new uint8_t[/*dummy size*/1];
+    pkt->dataDynamic(empty);
+    req->taskId(taskId());
+    pkt->pushSenderState(state);
+
+    // AbstractMemory *mem = (AbstractMemory
+    // *)SimObject::find("system.mem_ctrls"); if (!mem) {
+    //  mem = (AbstractMemory *)SimObject::find("system.hmc_dev.mem_ctrls00");
+    //}
+    // assert(mem);
+    // uint64_t data1;
+    // mem->functionalData(pimpAddr[0], 8, (uint8_t *)&data1);
+
+    dcachePort.sendFunctional(pkt);
+
+    //_status = Running;
+
+    PIMAddrs.clear();
+
+    DPRINTF(PIM, "PIM S/G requests data\n");
+
+    state = new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
+    flags = Request::UNCACHEABLE;
+    req = new Request(pim_addr_base, size * num, flags, 0);
+    pkt = new Packet(req, MemCmd::PIMRead);
+
+    empty = new uint8_t[size * num];
+    pkt->dataDynamic(empty);
+    req->taskId(taskId());
+    pkt->pushSenderState(state);
+    dcachePort.sendTimingReq(pkt);
+  }
+
+  return true;
+}

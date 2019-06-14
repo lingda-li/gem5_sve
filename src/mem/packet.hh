@@ -531,7 +531,12 @@ class Packet : public Printable
         for (int i = 0; i < _addr.size(); i++)
           addr.push_back(_addr[i]);
       }
-
+      PIMSenderState(std::vector<Addr> _addr, int _id = 0)
+          : cycle(0), id(_id), pid(0), procid(-1), physical(true),
+            command(Control) {
+        for (int i = 0; i < _addr.size(); i++)
+          addr.push_back(_addr[i]);
+      }
       PIMSenderState(Tick _tick, Addr _addr1, Addr _addr2, Addr _addr3,
                      int _id = 0)
           : cycle(_tick), id(_id), pid(0), procid(-1), physical(false),
@@ -552,6 +557,11 @@ class Packet : public Printable
       PIMSenderState()
           : cycle(0), id(-1), pid(-1), procid(-1), physical(false),
             command(Control) {}
+      PIMSenderState(Tick _tick, Addr _addr, int _id = 0)
+          : cycle(_tick), id(_id), pid(0), procid(-1), physical(false),
+            command(Control) {
+        addr.push_back(_addr);
+      }
       void setCommand(Command cmd) { command = cmd; }
       bool isCheck() { return command == CheckReady; }
       bool isRegistration() { return command == Registration; }
