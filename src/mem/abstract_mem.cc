@@ -474,7 +474,7 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
       else
         DPRINTF(PIM, "Remove PIM operation from queue [0x%lx]\n", addrs[0]);
       bool found = false;
-      bool threadid = -1;
+      int threadid = -1;
       std::vector<Packet::PIMSenderState *>::iterator index;
       for (auto i = pendingPIMqueue.begin(); i != pendingPIMqueue.end(); i++) {
         if ((*i)->addr[0] == senderState->addr[0] &&

@@ -2151,8 +2151,6 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
 
     //_status = Running;
 
-    PIMAddrs.clear();
-
     DPRINTF(PIM, "PIM S/G requests data\n");
 
     state = new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
@@ -2165,6 +2163,8 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     req->taskId(taskId());
     pkt->pushSenderState(state);
     dcachePort.sendTimingReq(pkt);
+
+    PIMAddrs.clear();
   }
 
   return true;

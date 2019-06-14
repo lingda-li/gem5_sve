@@ -400,6 +400,8 @@ Packet::checkFunctional(Printable *obj, Addr addr, bool is_secure, int size,
             memcpy(_data, getConstPtr<uint8_t>() - offset,
                    (min(func_end, val_end) - val_start) + 1);
         }
+    } else if (isPIM()) {
+      return false;
     } else {
         panic("Don't know how to handle command %s\n", cmdString());
     }

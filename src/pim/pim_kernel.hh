@@ -100,6 +100,8 @@ protected:
   public:
     RecvPIMPort(const std::string &name, PIMKernel &_kernel);
 
+    void retryTimingReq();
+
   protected:
     Tick recvAtomic(PacketPtr pkt);
 
@@ -113,6 +115,8 @@ protected:
     void processSendRetry();
 
     EventFunctionWrapper sendRetryEvent;
+
+    bool blocked;
   };
 
   PIMMasterPort port;
@@ -129,6 +133,7 @@ public:
 protected:
   const Params *parms;
 
+  std::vector<PacketPtr> funcQueue;
   // PIM register defination
   typedef PIMKernel::dataType Regs;
   std::vector<pair<Regs, DataStatus>> regs;
@@ -143,13 +148,12 @@ protected:
   // size of the current data
   size_t size;
   int num; // number of elements
+  bool finished;
 
   std::vector<Packet::PIMSenderState *> pendingPIMqueue;
 
 protected:
   EventFunctionWrapper tickEvent;
-  EventFunctionWrapper computeEvent;
-  EventFunctionWrapper finishEvent;
 
 public:
   virtual ~PIMKernel();
@@ -163,8 +167,6 @@ public:
   int _output;
 
   Addr pim_addr_base;
-
-  Tick tickid;
 
 public:
   void regStats() override;
@@ -186,27 +188,18 @@ public:
   PacketPtr retry_pkt;
 
 public:
-  bool getReadyStatus();
-
-  virtual bool inputReady();
-  virtual bool outputReady();
   virtual void tick();
   virtual void finish();
-  virtual void trycompute();
   const AddrRangeList addrRanges;
+  virtual bool isReady();
 
-  virtual bool start(PacketPtr pkt);
-  virtual void active();
+  virtual void start();
   virtual bool powerOff();
   virtual bool isActive();
-  virtual bool canModify();
   virtual bool needSchedule();
 
   virtual int locateLatest();
-  virtual bool readReg(int index);
   virtual bool doDataCallback(PacketPtr pkt, Tick response_time);
-
-  std::vector<PacketPtr> recPackets;
 
   virtual BaseMasterPort &getMasterPort(const std::string &if_name,
                                         PortID idx = InvalidPortID) override;
