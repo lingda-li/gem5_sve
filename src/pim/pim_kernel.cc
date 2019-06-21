@@ -42,22 +42,23 @@ void PIMKernel::init() {
 bool PIMKernel::recvTimingReq(PacketPtr pkt) {
   DPRINTF(PIM, "Get data request\n");
   if (status == Finish) {
-    assert(pkt->getSize() == size * num);
-    auto *state = pkt->senderState;
-    while (state->predecessor)
-      state = state->predecessor;
-    auto *senderState = dynamic_cast<Packet::PIMSenderState *>(state);
-    assert(senderState);
-    if (senderState->addr.size() != addrs.size()) {
-      DPRINTF(PIM, "ERR: size does not match\n");
-      return false;
-    }
-    for (int i = 0; i < senderState->addr.size(); i++) {
-      if (senderState->addr[i] != addrs[i]) {
-        DPRINTF(PIM, "ERR: address does not match %d\n", i);
-        return false;
-      }
-    }
+    pkt->setSize(size * num);
+    //assert(pkt->getSize() == size * num);
+    //auto *state = pkt->senderState;
+    //while (state->predecessor)
+    //  state = state->predecessor;
+    //auto *senderState = dynamic_cast<Packet::PIMSenderState *>(state);
+    //assert(senderState);
+    //if (senderState->addr.size() != addrs.size()) {
+    //  DPRINTF(PIM, "ERR: size does not match\n");
+    //  return false;
+    //}
+    //for (int i = 0; i < senderState->addr.size(); i++) {
+    //  if (senderState->addr[i] != addrs[i]) {
+    //    DPRINTF(PIM, "ERR: address does not match %d\n", i);
+    //    return false;
+    //  }
+    //}
     DPRINTF(PIM, "Return data\n");
     Tick request_time = clockEdge((Cycles)1) + pkt->headerDelay;
     pkt->setData(raw_data);
@@ -171,8 +172,8 @@ void PIMKernel::tick() {
     start();
     break;
   case Status::Finish: {
-    DPRINTF(PIM, "Finish PIM opration\n");
     if (!finished) {
+      DPRINTF(PIM, "Finish PIM opration\n");
       finish();
       finished = true;
     }
@@ -355,7 +356,7 @@ PIMKernel::RecvPIMPort::RecvPIMPort(const std::string &name,
                                     PIMKernel &_kernel)
     : QueuedSlavePort(name, &_kernel, queue), queue(_kernel, *this),
       kernel(_kernel), sendRetryEvent([this] { processSendRetry(); }, name),
-      blocked(false) {}
+      blockedNum(0) {}
 
 AddrRangeList PIMKernel::RecvPIMPort::getAddrRanges() const {
   return kernel.addrRanges;
@@ -379,19 +380,21 @@ Tick PIMKernel::RecvPIMPort::recvAtomic(PacketPtr pkt) {
 }
 
 void PIMKernel::RecvPIMPort::retryTimingReq() {
-  if (blocked) {
+  if (blockedNum) {
     assert(!sendRetryEvent.scheduled());
     owner.schedule(sendRetryEvent, kernel.clockEdge((Cycles)1));
-    blocked = false;
+    blockedNum--;
   }
 }
 
 bool PIMKernel::RecvPIMPort::recvTimingReq(PacketPtr pkt) {
-  if (blocked)
+  if (blockedNum) {
+    blockedNum++;
     return false;
+  }
   bool success = kernel.recvTimingReq(pkt);
   if (!success)
-    blocked = true;
+    blockedNum = 1;
   return success;
 }
 

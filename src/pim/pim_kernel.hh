@@ -116,7 +116,7 @@ protected:
 
     EventFunctionWrapper sendRetryEvent;
 
-    bool blocked;
+    int blockedNum;
   };
 
   PIMMasterPort port;

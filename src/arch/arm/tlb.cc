@@ -1236,6 +1236,7 @@ TLB::translateComplete(RequestPtr req, ThreadContext *tc,
     // PIM access, virtual address equals to physical address
     if (req->getFlags() & Request::PIM) {
       req->setPaddr(req->getVaddr());
+      translation->finish(NoFault, req, tc, mode);
       return NoFault;
     }
     if (FullSystem)

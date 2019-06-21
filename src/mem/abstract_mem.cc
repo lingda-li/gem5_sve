@@ -447,7 +447,6 @@ void
 AbstractMemory::functionalAccess(PacketPtr pkt)
 {
   if (pkt->isPIM()) {
-    DPRINTF(PIM, "PIM instruction\n");
     Packet::PIMSenderState *senderState =
         dynamic_cast<Packet::PIMSenderState *>(pkt->senderState);
     assert(senderState);

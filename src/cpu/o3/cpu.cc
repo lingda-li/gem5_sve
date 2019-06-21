@@ -2087,7 +2087,7 @@ template <class Impl> void FullO3CPU<Impl>::HostProcess(ThreadContext *tc) {
 template <class Impl>
 bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
                                        size_t size, int idx, int num,
-                                       bool isread) {
+                                       bool isvalid, bool isread) {
   O3ThreadContext<Impl> *t_info = (O3ThreadContext<Impl> *)tc;
   unsigned addr_size = 1;
   // Fault fault;
@@ -2151,18 +2151,18 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
 
     //_status = Running;
 
-    DPRINTF(PIM, "PIM S/G requests data\n");
+    //DPRINTF(PIM, "PIM S/G requests data\n");
 
-    state = new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
-    flags = Request::UNCACHEABLE;
-    req = new Request(pim_addr_base, size * num, flags, 0);
-    pkt = new Packet(req, MemCmd::PIMRead);
+    //state = new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
+    //flags = Request::UNCACHEABLE;
+    //req = new Request(pim_addr_base, size * num, flags, 0);
+    //pkt = new Packet(req, MemCmd::PIMRead);
 
-    empty = new uint8_t[size * num];
-    pkt->dataDynamic(empty);
-    req->taskId(taskId());
-    pkt->pushSenderState(state);
-    dcachePort.sendTimingReq(pkt);
+    //empty = new uint8_t[size * num];
+    //pkt->dataDynamic(empty);
+    //req->taskId(taskId());
+    //pkt->pushSenderState(state);
+    //dcachePort.sendTimingReq(pkt);
 
     PIMAddrs.clear();
   }

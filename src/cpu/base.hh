@@ -684,7 +684,7 @@ public:
 
     virtual bool PIMScatterGather(ThreadContext *tc, uint64_t addr,
                                   size_t size, int idx, int num,
-                                  bool isread) {
+                                  bool isvalid, bool isread) {
       fatal("Base CPU cannot process PIM.");
     }
 };

@@ -694,7 +694,8 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
     auto store_it = load_inst->sqIt;
     assert (store_it >= storeWBIt);
     // End once we've reached the top of the LSQ
-    while (store_it != storeWBIt) {
+    // PIM request does not forward.
+    while (store_it != storeWBIt && !(req->_flags & Request::PIM)) {
         // Move the index to one younger
         store_it--;
         assert(store_it->valid());
@@ -841,7 +842,11 @@ LSQUnit<Impl>::read(LSQRequest *req, int load_idx)
 
     // Allocate memory if this is the first time a load is issued.
     if (!load_inst->memData) {
-        load_inst->memData = new uint8_t[req->mainRequest()->getSize()];
+        // Allocate more space for PIM request
+        if (req->_flags & Request::PIM)
+          load_inst->memData = new uint8_t[MaxDataBytes];
+        else
+          load_inst->memData = new uint8_t[req->mainRequest()->getSize()];
     }
 
     // For now, load throughput is constrained by the number of

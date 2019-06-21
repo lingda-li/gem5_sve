@@ -692,6 +692,8 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                        unsigned int size, Addr addr, Request::Flags flags,
                        uint64_t *res, const std::vector<bool>& byteEnable)
 {
+    //if (flags & Request::PIM)
+    //  printf("Hello %d\n", inst->lqIdx);
     /* TODO: Revisit if this setRequest is needed */
     inst->setRequest();
     ThreadID tid = cpu->contextToThread(inst->contextId());
