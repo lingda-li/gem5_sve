@@ -1192,14 +1192,14 @@ let {{
             'MicroOp',
             {'tpl_header': tplHeader,
              'tpl_args': tplArgs,
-             'pim_init_code': 'PIMType = 0;',
+             'pim_init_code': 'PIMType = 2;',
              'memacc_code': loadMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode_load,
              'fault_status_set_code' : faultStatusSetCode,
              'fault_status_reset_code' : faultStatusResetCode,
              'pred_check_code' : predCheckCode,
              'fa_code' : ''},
-            ['IsMicroop', 'IsMemRef', 'IsLoad'])
+            ['IsMicroop'])
         storeIop = InstObjParams('st1',
             ('SveScatterStoreVIMicroop'
              if indexed_addr_form == IndexedAddrForm.VEC_PLUS_IMM
@@ -1207,7 +1207,7 @@ let {{
             'MicroOp',
             {'tpl_header': tplHeader,
              'tpl_args': tplArgs,
-             'pim_init_code': 'PIMType = 0;',
+             'pim_init_code': 'PIMType = 2;',
              'memacc_code': storeMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode_store,
              'pred_check_code' : predCheckCode,

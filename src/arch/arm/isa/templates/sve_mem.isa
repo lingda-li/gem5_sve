@@ -421,10 +421,10 @@ def template SveIndexedMemVIMicroopDeclare {{
         {
             %(constructor)s;
             %(pim_init_code)s;
-            //if (PIMType == 2 && _elemIndex == _numElems - 1) {
-            //  flags[IsLoad] = true;
-            //  flags[IsStore] = false;
-            //}
+            if (PIMType == 2 && _elemIndex == _numElems - 1) {
+              flags[IsMemRef] = true;
+              flags[IsLoad] = true;
+            }
             if (_opClass == MemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
@@ -512,10 +512,10 @@ def template SveIndexedMemSVMicroopDeclare {{
         {
             %(constructor)s;
             %(pim_init_code)s;
-            //if (PIMType == 2 && _elemIndex == _numElems - 1) {
-            //  flags[IsLoad] = true;
-            //  flags[IsStore] = false;
-            //}
+            if (PIMType == 2 && _elemIndex == _numElems - 1) {
+              flags[IsMemRef] = true;
+              flags[IsLoad] = true;
+            }
             if (_opClass == MemReadOp && elemIndex == 0) {
                 // The first micro-op is responsible for pinning the
                 // destination and the fault status registers
@@ -570,6 +570,19 @@ def template SveGatherLoadMicroopExecute {{
         %(op_decl)s;
         %(op_rd)s;
         %(ea_code)s;
+
+        // When it is not the last op, it is not a memory access instruction.
+        if (PIMType == 2) {
+          //printf("init%d\n", PIMType);
+          int index = elemIndex;
+          auto *tc = xc->tcBase();
+          auto *cpu = tc->getCpuPtr();
+          cpu->PIMScatterGather(tc, EA, sizeof(MemElemType), elemIndex,
+                                numElems, %(pred_check_code)s, true);
+          // Last op collects data from PIM, this cannot be it.
+          assert(elemIndex != numElems - 1);
+          return fault;
+        }
 
         MemElemType memData = 0;
 
