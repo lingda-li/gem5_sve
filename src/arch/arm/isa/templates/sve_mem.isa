@@ -695,7 +695,7 @@ def template SveGatherLoadMicroopCompleteAcc {{
     Fault %(class_name)s%(tpl_args)s::completeAcc(PacketPtr pkt,
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
-        //printf("complete%d\n", PIMType);
+        printf("complete%d\n", PIMType);
         if (PIMType == 1 || PIMType == 2) {
         //if (PIMType == 1 || (PIMType == 2 && elemIndex < numElems - 1))
           return NoFault;

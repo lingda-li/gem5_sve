@@ -2102,20 +2102,25 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
   // if (fault != NoFault) {
   //  break;
   //}
-  auto *tlb = dynamic_cast<TLB *>(tc->getDTBPtr());
-  assert(tlb);
-  // bool fault = tlb->translateFunctional(tc, addr, paddr);
-  RequestPtr req = new Request(
-      0, addr, addr_size, Request::NO_ACCESS | ArmISA::TLB::MustBeOne,
-      dataMasterId(), t_info->instAddr(), t_info->contextId());
-  bool fault = tlb->translateFunctional(req, tc, BaseTLB::Read);
-  assert(!fault);
-  Addr paddr = req->getPaddr();
+  if (isvalid) {
+    auto *tlb = dynamic_cast<TLB *>(tc->getDTBPtr());
+    assert(tlb);
+    // bool fault = tlb->translateFunctional(tc, addr, paddr);
+    RequestPtr req = new Request(
+        0, addr, addr_size, Request::NO_ACCESS | ArmISA::TLB::MustBeOne,
+        dataMasterId(), t_info->instAddr(), t_info->contextId());
+    bool fault = tlb->translateFunctional(req, tc, BaseTLB::Read);
+    assert(!fault);
+    Addr paddr = req->getPaddr();
 
-  // pimpAddr.push_back(req->getPaddr());
-  PIMAddrs.push_back(paddr);
-  DPRINTF(PIM, "PIM translates address [%llx]->[%llx]\n", addr,
-          PIMAddrs.back());
+    // pimpAddr.push_back(req->getPaddr());
+    PIMAddrs.push_back(paddr);
+    DPRINTF(PIM, "PIM translates address [%llx]->[%llx]\n", addr,
+            PIMAddrs.back());
+  } else {
+    PIMAddrs.push_back(0);
+    DPRINTF(PIM, "PIM empty request\n");
+  }
 
   // if (fault != NoFault) {
   //  DPRINTF(PIM, "Fault occured. Handling the fault for PIM address\n");

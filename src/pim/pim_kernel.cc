@@ -42,7 +42,6 @@ void PIMKernel::init() {
 bool PIMKernel::recvTimingReq(PacketPtr pkt) {
   DPRINTF(PIM, "Get data request\n");
   if (status == Finish) {
-    pkt->setSize(size * num);
     //assert(pkt->getSize() == size * num);
     //auto *state = pkt->senderState;
     //while (state->predecessor)
@@ -61,6 +60,7 @@ bool PIMKernel::recvTimingReq(PacketPtr pkt) {
     //}
     DPRINTF(PIM, "Return data\n");
     Tick request_time = clockEdge((Cycles)1) + pkt->headerDelay;
+    pkt->setSize(size * num);
     pkt->setData(raw_data);
     pkt->makeTimingResponse();
     pkt->headerDelay = pkt->payloadDelay = 0;
@@ -201,7 +201,11 @@ void PIMKernel::start() {
   addrs = senderState->addr;
   for (int i = 0; i < senderState->addr.size(); i++) {
     regs[i].first = senderState->addr[i];
-    regs[i].second = addrReady;
+    // Distinguish empty requests.
+    if (senderState->addr[i])
+      regs[i].second = addrReady;
+    else
+      regs[i].second = dataEmpty;
   }
   for (int i = senderState->addr.size(); i < _input; i++)
     regs[i].second = dataEmpty;
@@ -255,6 +259,8 @@ bool PIMKernel::doDataCallback(PacketPtr pkt, Tick response_time) {
     ((int64_t *)raw_data)[i] = *pkt->getPtr<int64_t>();
   }
 
+  assert(regs[i].second == addrReady ||
+         regs[i].second == dataWaitingResp);
   regs[i].second = dataFinish;
   if (isReady())
     status = Finish;
