@@ -696,10 +696,36 @@ def template SveGatherLoadMicroopCompleteAcc {{
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
         printf("complete%d\n", PIMType);
-        if (PIMType == 1 || PIMType == 2) {
-        //if (PIMType == 1 || (PIMType == 2 && elemIndex < numElems - 1))
+        //if (PIMType == 1 || PIMType == 2)
+        if (PIMType == 1 || (PIMType == 2 && elemIndex < numElems - 1))
+          return NoFault;
+        else if (PIMType == 2 && elemIndex == numElems - 1) {
+          //for (int i = 0; i < numElems; i++)
+          //  printf("Mask: %x\n", pkt->getPtr<uint8_t>()[numElems * 4 + i]);
+          bool aarch64 M5_VAR_USED = true;
+          unsigned eCount =
+              ArmStaticInst::getCurSveVecLen<RegElemType>(xc->tcBase());
+
+          %(op_decl)s;
+          %(op_rd)s;
+
+          TheISA::VecRegContainer memData;
+          auto memDataView = memData.as<MemElemType>();
+
+          if (xc->readMemAccPredicate()) {
+              memcpy(memData.raw_ptr<uint8_t>(), pkt->getPtr<uint8_t>(),
+                     numElems * sizeof(MemElemType));
+          }
+
+          for (int i = 0; i < eCount; i++) {
+              AA64FpDest[i] = memDataView[i];
+              //printf("Data[%d]: %ld\n", i, (long int)AA64FpDest[i]);
+          }
+          %(op_wb)s;
+
           return NoFault;
         }
+
         bool aarch64 M5_VAR_USED = true;
 
         %(op_decl)s;

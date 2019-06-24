@@ -59,8 +59,11 @@ bool PIMKernel::recvTimingReq(PacketPtr pkt) {
     //  }
     //}
     DPRINTF(PIM, "Return data\n");
+    // Add request mask to raw_data.
+    for (int i = 0; i < num; i++)
+      raw_data[size * num + i] = regs[i].first ? 1 : 0;
     Tick request_time = clockEdge((Cycles)1) + pkt->headerDelay;
-    pkt->setSize(size * num);
+    pkt->setSize(size * num + num);
     pkt->setData(raw_data);
     pkt->makeTimingResponse();
     pkt->headerDelay = pkt->payloadDelay = 0;
@@ -209,6 +212,9 @@ void PIMKernel::start() {
   }
   for (int i = senderState->addr.size(); i < _input; i++)
     regs[i].second = dataEmpty;
+  // Zero raw_data, because we need to return 0 for data that is not requested.
+  for (int i = 0; i < _input; i++)
+    raw_data[i] = 0;
   size = pkt->getSize();
   num = senderState->addr.size();
   DPRINTF(PIM, "Start: size = %d, num = %d\n", size, num);
