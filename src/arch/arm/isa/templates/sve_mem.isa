@@ -652,6 +652,7 @@ def template SveGatherLoadMicroopInitiateAcc {{
               EA &= ~(op_size - 1);
               fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
             } else {
+              printf("Addr[%d]: %lx\n", elemIndex, (long int)EA);
               fault = initiateMemRead(xc, traceData, EA, memData,
                   this->memAccessFlags);
             }
@@ -695,7 +696,7 @@ def template SveGatherLoadMicroopCompleteAcc {{
     Fault %(class_name)s%(tpl_args)s::completeAcc(PacketPtr pkt,
         ExecContext *xc, Trace::InstRecord *traceData) const
     {
-        printf("complete%d\n", PIMType);
+        //printf("complete%d\n", PIMType);
         //if (PIMType == 1 || PIMType == 2)
         if (PIMType == 1 || (PIMType == 2 && elemIndex < numElems - 1))
           return NoFault;
@@ -719,7 +720,7 @@ def template SveGatherLoadMicroopCompleteAcc {{
 
           for (int i = 0; i < eCount; i++) {
               AA64FpDest[i] = memDataView[i];
-              //printf("Data[%d]: %ld\n", i, (long int)AA64FpDest[i]);
+              printf("Data[%d]: %ld\n", i, (long int)AA64FpDest[i]);
           }
           %(op_wb)s;
 
@@ -740,6 +741,7 @@ def template SveGatherLoadMicroopCompleteAcc {{
         if (traceData) {
             traceData->setData(memData);
         }
+        printf("Data[%d]: %ld\n", elemIndex, (long int)AA64FpDest[elemIndex]);
 
         return NoFault;
     }

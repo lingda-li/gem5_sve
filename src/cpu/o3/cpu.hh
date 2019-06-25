@@ -842,6 +842,8 @@ class FullO3CPU : public BaseO3CPU
 
   private:
     std::vector<Addr> PIMAddrs;
+    const int PIMAddrsSize = 256;
+    void clearPIMAddrs();
 };
 
 #endif // __CPU_O3_CPU_HH__

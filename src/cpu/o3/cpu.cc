@@ -664,6 +664,10 @@ FullO3CPU<Impl>::init()
     for (int tid = 0; tid < numThreads; ++tid)
         thread[tid]->noSquashFromTC = false;
 
+    // Initialize PIMAddrs.
+    for (int i = 0; i < PIMAddrsSize; i++)
+      PIMAddrs.push_back(0);
+
     commit.setThreads(thread);
 }
 
@@ -2114,11 +2118,12 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     Addr paddr = req->getPaddr();
 
     // pimpAddr.push_back(req->getPaddr());
-    PIMAddrs.push_back(paddr);
-    DPRINTF(PIM, "PIM translates address [%llx]->[%llx]\n", addr,
-            PIMAddrs.back());
+    //PIMAddrs.push_back(paddr);
+    PIMAddrs[idx] = paddr;
+    DPRINTF(PIM, "PIM translates address %d, [%llx]->[%llx]\n", idx, addr,
+            paddr);
   } else {
-    PIMAddrs.push_back(0);
+    //PIMAddrs.push_back(0);
     DPRINTF(PIM, "PIM empty request\n");
   }
 
@@ -2133,8 +2138,11 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
   if (idx == num - 1) {
     DPRINTF(PIM, "PIM S/G sends addresses\n");
 
+    std::vector<Addr> sendAddrs;
+    for (int i = 0; i < num; i++)
+      sendAddrs.push_back(PIMAddrs[i]);
     Packet::PIMSenderState *state =
-        new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
+        new Packet::PIMSenderState(curTick(), sendAddrs, _cpuId);
     Request::Flags flags = 0;
     RequestPtr req = new Request(pim_addr_base, size, flags, 0);
     PacketPtr pkt = new Packet(req, MemCmd::PIM);
@@ -2169,8 +2177,13 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     //pkt->pushSenderState(state);
     //dcachePort.sendTimingReq(pkt);
 
-    PIMAddrs.clear();
+    clearPIMAddrs();
   }
 
   return true;
+}
+
+template <class Impl> void FullO3CPU<Impl>::clearPIMAddrs() {
+  for (int i = 0; i < PIMAddrsSize; i++)
+    PIMAddrs[i] = 0;
 }

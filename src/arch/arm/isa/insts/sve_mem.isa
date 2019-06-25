@@ -1207,7 +1207,7 @@ let {{
             'MicroOp',
             {'tpl_header': tplHeader,
              'tpl_args': tplArgs,
-             'pim_init_code': 'PIMType = 2;',
+             'pim_init_code': 'PIMType = 0;',
              'memacc_code': storeMemAccCode,
              'ea_code' : sveEnabledCheckCode + eaCode_store,
              'pred_check_code' : predCheckCode,
