@@ -664,7 +664,8 @@ FullO3CPU<Impl>::init()
     for (int tid = 0; tid < numThreads; ++tid)
         thread[tid]->noSquashFromTC = false;
 
-    // Initialize PIMAddrs.
+    // Initialize PIM.
+    PIMNum = 0;
     for (int i = 0; i < PIMAddrsSize; i++)
       PIMAddrs.push_back(0);
 
@@ -2106,6 +2107,7 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
   // if (fault != NoFault) {
   //  break;
   //}
+  // Address translation.
   if (isvalid) {
     auto *tlb = dynamic_cast<TLB *>(tc->getDTBPtr());
     assert(tlb);
@@ -2117,27 +2119,24 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     assert(!fault);
     Addr paddr = req->getPaddr();
 
-    // pimpAddr.push_back(req->getPaddr());
-    //PIMAddrs.push_back(paddr);
     PIMAddrs[idx] = paddr;
     DPRINTF(PIM, "PIM translates address %d, [%llx]->[%llx]\n", idx, addr,
             paddr);
   } else {
-    //PIMAddrs.push_back(0);
-    DPRINTF(PIM, "PIM empty request\n");
+    DPRINTF(PIM, "PIM empty request %d\n", idx);
   }
+  PIMNum++;
 
   // if (fault != NoFault) {
   //  DPRINTF(PIM, "Fault occured. Handling the fault for PIM address\n");
   //  schedule(pimEvent, clockEdge(Cycles(1)));
   //  return false;
   //}
+  //assert(!pimEvent.scheduled());
 
-  assert(!pimEvent.scheduled());
-
-  if (idx == num - 1) {
+  //if (idx == num - 1) {
+  if (PIMNum == num) {
     DPRINTF(PIM, "PIM S/G sends addresses\n");
-
     std::vector<Addr> sendAddrs;
     for (int i = 0; i < num; i++)
       sendAddrs.push_back(PIMAddrs[i]);
@@ -2146,44 +2145,33 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     Request::Flags flags = 0;
     RequestPtr req = new Request(pim_addr_base, size, flags, 0);
     PacketPtr pkt = new Packet(req, MemCmd::PIM);
-
     uint8_t *empty = new uint8_t[/*dummy size*/1];
     pkt->dataDynamic(empty);
     req->taskId(taskId());
     pkt->pushSenderState(state);
-
-    // AbstractMemory *mem = (AbstractMemory
-    // *)SimObject::find("system.mem_ctrls"); if (!mem) {
-    //  mem = (AbstractMemory *)SimObject::find("system.hmc_dev.mem_ctrls00");
-    //}
-    // assert(mem);
-    // uint64_t data1;
-    // mem->functionalData(pimpAddr[0], 8, (uint8_t *)&data1);
-
     dcachePort.sendFunctional(pkt);
 
     //_status = Running;
 
     //DPRINTF(PIM, "PIM S/G requests data\n");
-
     //state = new Packet::PIMSenderState(curTick(), PIMAddrs, _cpuId);
     //flags = Request::UNCACHEABLE;
     //req = new Request(pim_addr_base, size * num, flags, 0);
     //pkt = new Packet(req, MemCmd::PIMRead);
-
     //empty = new uint8_t[size * num];
     //pkt->dataDynamic(empty);
     //req->taskId(taskId());
     //pkt->pushSenderState(state);
     //dcachePort.sendTimingReq(pkt);
 
-    clearPIMAddrs();
+    clearPIMStatus();
   }
 
   return true;
 }
 
-template <class Impl> void FullO3CPU<Impl>::clearPIMAddrs() {
+template <class Impl> void FullO3CPU<Impl>::clearPIMStatus() {
+  PIMNum = 0;
   for (int i = 0; i < PIMAddrsSize; i++)
     PIMAddrs[i] = 0;
 }
