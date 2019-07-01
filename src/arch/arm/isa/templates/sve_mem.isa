@@ -652,7 +652,7 @@ def template SveGatherLoadMicroopInitiateAcc {{
               EA &= ~(op_size - 1);
               fault = xc->writeMem(NULL, op_size, EA, memAccessFlags, NULL);
             } else {
-              printf("Addr[%d]: %lx\n", elemIndex, (long int)EA);
+              //printf("Addr[%d]: %lx\n", elemIndex, (long int)EA);
               fault = initiateMemRead(xc, traceData, EA, memData,
                   this->memAccessFlags);
             }
@@ -713,14 +713,14 @@ def template SveGatherLoadMicroopCompleteAcc {{
           TheISA::VecRegContainer memData;
           auto memDataView = memData.as<MemElemType>();
 
-          if (xc->readMemAccPredicate()) {
-              memcpy(memData.raw_ptr<uint8_t>(), pkt->getPtr<uint8_t>(),
-                     numElems * sizeof(MemElemType));
-          }
+          //if (xc->readMemAccPredicate()) {
+          memcpy(memData.raw_ptr<uint8_t>(), pkt->getPtr<uint8_t>(),
+                 numElems * sizeof(MemElemType));
+          //}
 
           for (int i = 0; i < eCount; i++) {
               AA64FpDest[i] = memDataView[i];
-              printf("Data[%d]: %ld\n", i, (long int)AA64FpDest[i]);
+              //printf("Data[%d]: %ld\n", i, (long int)AA64FpDest[i]);
           }
           %(op_wb)s;
 

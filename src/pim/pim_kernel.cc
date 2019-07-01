@@ -168,7 +168,8 @@ void PIMKernel::tick() {
         status = SendRetry;
         read_retry++;
       }
-    }
+    } else
+      status = Finish;
   } break;
 
   case Status::Idle:

@@ -53,6 +53,7 @@ m5.util.addToPath("../../")
 
 from common import SysPaths
 from common import CpuConfig
+from common import MemConfig
 from common.cores.arm import ex5_big, ex5_LITTLE
 
 import devices
@@ -192,6 +193,20 @@ def addOptions(parser):
     parser.add_argument("--cacheline_size", type=int, default=64,
                         choices=[16, 32, 64, 128])
 
+    # PIM
+    parser.add_argument("--enable-pim", action="store_true",  default=False)
+    parser.add_argument("--pim-type", type=str, default="kernel",
+                        choices=["cpu", "kernel", "hybrid"],
+                        help="type of pim kernel inside the memory to use")
+    parser.add_argument("--kernel-type", type=str, default="adder",
+                        choices=["adder", "multiplier", "divider"],
+                        help = "type of pim kernel inside the memory to use")
+    parser.add_argument("--num-pim-kernels", type=int, default=0,
+                        help="Number of in-memory kernels")
+    parser.add_argument("--num-pim-processors", type=int, default=0,
+                        help="Number of in-memory processors")
+    parser.add_argument("--coherence-granularity", type=str, default="64B")
+
     return parser
 
 def build(options):
@@ -266,6 +281,8 @@ def build(options):
             m5.util.panic("Big CPU model requires caches")
         if options.little_cpus > 0 and system.littleCluster.requireCaches():
             m5.util.panic("Little CPU model requires caches")
+
+    MemConfig.config_pim(options, system)
 
     # Create a KVM VM and do KVM-specific configuration
     if issubclass(big_model, KvmCluster):

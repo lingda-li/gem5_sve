@@ -462,9 +462,8 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
       else
         DPRINTF(PIM, "Add PIM operation to queue [0x%lx]\n", addrs[0]);
 
-      pkt->popLabel();
-
-      delete pkt;
+      //pkt->popLabel();
+      //delete pkt;
     } else if (senderState->isComplete()) {
       if (addrs.size() == 3)
         DPRINTF(
@@ -473,7 +472,7 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
       else
         DPRINTF(PIM, "Remove PIM operation from queue [0x%lx]\n", addrs[0]);
       bool found = false;
-      int threadid = -1;
+      //int threadid = -1;
       std::vector<Packet::PIMSenderState *>::iterator index;
       for (auto i = pendingPIMqueue.begin(); i != pendingPIMqueue.end(); i++) {
         if ((*i)->addr[0] == senderState->addr[0] &&
@@ -481,11 +480,11 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
             (*i)->addr[2] == senderState->addr[2]) {
           found = true;
           index = i;
-          threadid = (*i)->threadid;
+          //threadid = (*i)->threadid;
           break;
         }
       }
-      assert(found && threadid >= 0);
+      assert(found);
 
       //BaseCPU *cpu = (BaseCPU *)SimObject::find("system.cpu");
       //if (!cpu) {

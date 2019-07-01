@@ -373,7 +373,8 @@ class SveIndexedMemVI : public PredMacroOp
             }
         }
 #ifdef SVE_SG_PIM
-        numMicroops += num_elems;
+        if (isLoad)
+            numMicroops += num_elems;
 #endif
 
         microOps = new StaticInstPtr[numMicroops];
@@ -392,13 +393,15 @@ class SveIndexedMemVI : public PredMacroOp
         }
 
 #ifdef SVE_SG_PIM
-        printf("IVHello %d\n", num_elems);
-        for (int i = 0; i < num_elems; i++, uop++) {
-            *uop = new PIMMicroopType<RegElemType, MemElemType>(
-                mnem, machInst, __opClass, _dest, _gp,
-                isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
-                num_elems, firstFault);
-            (*uop)->setFlag(IsSVE);
+        if (isLoad) {
+            printf("IVHello %d\n", num_elems);
+            for (int i = 0; i < num_elems; i++, uop++) {
+                *uop = new PIMMicroopType<RegElemType, MemElemType>(
+                    mnem, machInst, __opClass, _dest, _gp,
+                    isLoad ? (IntRegIndex) VECREG_UREG0 : _base, _imm, i,
+                    num_elems, firstFault);
+                (*uop)->setFlag(IsSVE);
+            }
         }
 #endif
 
@@ -492,7 +495,8 @@ class SveIndexedMemSV : public PredMacroOp
             }
         }
 #ifdef SVE_SG_PIM
-        numMicroops += num_elems;
+        if (isLoad)
+            numMicroops += num_elems;
 #endif
 
         microOps = new StaticInstPtr[numMicroops];
@@ -511,13 +515,15 @@ class SveIndexedMemSV : public PredMacroOp
         }
 
 #ifdef SVE_SG_PIM
-        printf("SVHello %d\n", num_elems);
-        for (int i = 0; i < num_elems; i++, uop++) {
-            *uop = new PIMMicroopType<RegElemType, MemElemType>(
-                mnem, machInst, __opClass, _dest, _gp, _base,
-                isLoad ? (IntRegIndex) VECREG_UREG0 : _offset, _offsetIs32,
-                _offsetIsSigned, _offsetIsScaled, i, num_elems, firstFault);
-            (*uop)->setFlag(IsSVE);
+        if (isLoad) {
+            printf("SVHello %d\n", num_elems);
+            for (int i = 0; i < num_elems; i++, uop++) {
+              *uop = new PIMMicroopType<RegElemType, MemElemType>(
+                  mnem, machInst, __opClass, _dest, _gp, _base,
+                  isLoad ? (IntRegIndex)VECREG_UREG0 : _offset, _offsetIs32,
+                  _offsetIsSigned, _offsetIsScaled, i, num_elems, firstFault);
+              (*uop)->setFlag(IsSVE);
+            }
         }
 #endif
 

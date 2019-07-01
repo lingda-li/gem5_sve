@@ -343,3 +343,82 @@ def config_mem(options, system):
             subsystem.mem_ctrls[i].device_size = options.hmc_dev_vault_size
         else:
             subsystem.mem_ctrls[i].port = xbar.master
+
+def config_pim(options, system):
+    xbar = system.membus
+
+    addr_base = 0
+    for r in system.mem_ranges:
+        if long(r.end) > addr_base:
+            addr_base = r.end
+    # @PIM
+    # define in-memory processing units here
+    addr_base = addr_base + 1
+    if(hasattr(options,'enable_pim')) and options.enable_pim:
+        print ("Enable PIM simulation in the system.")
+
+        pim_type = options.pim_type
+        num_kernels = options.num_pim_kernels
+        num_processors = options.num_pim_processors
+        num_pim_logic = num_kernels + num_processors
+
+        if num_pim_logic <= 0:
+            fatal ("The num of PIM logic/processors cannot be zero while"
+                   " enabling PIM.")
+        system.pim_type = pim_type
+        # let host-side processors know the address of PIM logic
+        for cpu in system.bigCluster.cpus:
+            cpu.pim_base_addr = addr_base
+        for cpu in system.littleCluster.cpus:
+            cpu.pim_base_addr = addr_base
+
+        # memory contains kernels
+        if pim_type != "cpu" and num_kernels > 0:
+            pim_kernerls = []
+            print ("Creating PIM kernels...")
+            for pid in range(num_kernels):
+                if(options.kernel_type=="adder"):
+                    _kernel = PIMAdder()
+                else:
+                    if(options.kernel_type=="multiplier"):
+                        _kernel = PIMMultiplier()
+                    else:
+                        if(options.kernel_type=="divider"):
+                            _kernel = PIMDivider()
+                        else:
+                            fatal("no pim kernel type specified.")
+                vd = VoltageDomain(voltage="1.0V")
+                _kernel.clk_domain = SrcClockDomain(
+                        clock="1GHz", voltage_domain=vd)
+                _kernel.id = pid
+
+                # Currently, we use only one bit for accessing a PIM kernel.
+                # Detailed PIM information is defined inside the packet
+                # at mem/packet.hh(cc)
+                _kernel.addr_ranges = AddrRange(
+                        addr_base + pid, addr_base + pid)
+                _kernel.addr_base = addr_base
+
+                # connect to the memory bus if the memory is DRAM
+                _kernel.port = xbar.slave
+                _kernel.mem_port = xbar.master
+                pim_kernerls.append(_kernel)
+            system.pim_kernerls = pim_kernerls
+
+        # memory contains processors
+        if pim_type != "kernel" and num_processors > 0:
+            system.pim_cpu = TimingSimpleCPU(ispim =True,
+                    total_host_cpu = options.num_cpus, switched_out =True)
+            pim_vd = VoltageDomain(voltage="1.0V")
+            system.pim_cpu.clk_domain = SrcClockDomain(clock = '1GHz',
+                    voltage_domain = pim_vd)
+            print ("Creating PIM processors...")
+
+            system.pim_cpu.icache_port = system.membus.slave
+            system.pim_cpu.dcache_port = system.membus.slave
+            system.pim_cpu.workload = system.cpu[0].workload[0]
+
+            system.pim_cpu.isa = [default_isa_class()]
+
+        if pim_type == "hybrid":
+            fatal ("PIM logic is set to hybrid without configured")
