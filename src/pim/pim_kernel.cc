@@ -223,6 +223,8 @@ void PIMKernel::start() {
   status = Ready;
   finished = false;
   funcQueue.erase(funcQueue.begin());
+  delete pkt;
+  delete senderState;
 }
 
 bool PIMKernel::powerOff() {
@@ -275,6 +277,7 @@ bool PIMKernel::doDataCallback(PacketPtr pkt, Tick response_time) {
   DPRINTF(PIM, "Receive [0x%llx] [%d]- %lld [%d] : status [%d]\n",
           pkt->getAddr(), i, data[i], regs[i].second, status);
   delete senderState;
+  delete pkt->req;
   delete pkt;
   return true;
 }

@@ -2118,6 +2118,7 @@ bool FullO3CPU<Impl>::PIMScatterGather(ThreadContext *tc, uint64_t addr,
     bool fault = tlb->translateFunctional(req, tc, BaseTLB::Read);
     assert(!fault);
     Addr paddr = req->getPaddr();
+    delete req;
 
     PIMAddrs[idx] = paddr;
     DPRINTF(PIM, "PIM translates address %d, [%llx]->[%llx]\n", idx, addr,
