@@ -91,6 +91,8 @@ void PIMKernel::recvFunctional(PacketPtr pkt) {
   _pkt->dataDynamic(empty);
   _pkt->pushSenderState(state);
   port.sendFunctional(_pkt);
+  delete state;
+  delete _pkt;
   sent_pim_commands++;
 
   // Put pkt in a queue if it cannot be served this cycle.
@@ -168,7 +170,7 @@ void PIMKernel::tick() {
         status = SendRetry;
         read_retry++;
       }
-    } else
+    } else if (isReady())
       status = Finish;
   } break;
 
@@ -273,6 +275,7 @@ bool PIMKernel::doDataCallback(PacketPtr pkt, Tick response_time) {
     status = Finish;
   DPRINTF(PIM, "Receive [0x%llx] [%d]- %lld [%d] : status [%d]\n",
           pkt->getAddr(), i, data[i], regs[i].second, status);
+  delete senderState;
   delete pkt;
   return true;
 }
@@ -313,6 +316,8 @@ void PIMKernel::finish() {
   _pkt->dataDynamic(empty);
   _pkt->pushSenderState(state);
   port.sendFunctional(_pkt);
+  delete state;
+  delete _pkt;
 }
 
 void PIMKernel::regStats() {
