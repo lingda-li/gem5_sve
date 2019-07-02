@@ -512,6 +512,7 @@ AbstractMemory::functionalAccess(PacketPtr pkt)
       //}
 
       pendingPIMqueue.erase(index);
+      delete *index;
     }
 
     return;

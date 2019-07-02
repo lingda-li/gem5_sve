@@ -91,7 +91,6 @@ void PIMKernel::recvFunctional(PacketPtr pkt) {
   _pkt->dataDynamic(empty);
   _pkt->pushSenderState(state);
   port.sendFunctional(_pkt);
-  delete state;
   delete _pkt;
   sent_pim_commands++;
 
