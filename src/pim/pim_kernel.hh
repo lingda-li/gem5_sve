@@ -132,14 +132,18 @@ public:
 
 protected:
   const Params *parms;
+  const unsigned blkSize;
 
   std::vector<PacketPtr> funcQueue;
   // PIM register defination
   typedef PIMKernel::dataType Regs;
   std::vector<pair<Regs, DataStatus>> regs;
+  std::vector<std::vector<unsigned>> ori_indices;
 
   // Addresses
   std::vector<Addr> addrs;
+  std::vector<unsigned> reg_idx;
+  std::vector<Addr> offsets;
 
   // all data are stored here
   std::vector<Regs> data;
@@ -208,6 +212,8 @@ public:
   void init() override;
 
   virtual dataType doCompute();
+
+  void coalesce(int idx, Addr addr);
 
 protected:
   Tick recvAtomicSnoop(PacketPtr pkt) {

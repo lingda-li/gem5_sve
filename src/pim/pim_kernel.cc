@@ -15,13 +15,17 @@
 
 PIMKernel::PIMKernel(const Params *p)
     : MemObject(p), port(this), mem_port(name() + ".mem_port", *this),
-      status(Idle), parms(p), tickEvent([this] { tick(); }, "PIMKernel tick",
-                                        false, Event::Default_Pri),
+      status(Idle), parms(p), blkSize(p->block_size),
+      tickEvent([this] { tick(); }, "PIMKernel tick", false,
+                Event::Default_Pri),
       _id(p->id), _latency(p->latency), _input(p->input), _output(p->output),
       pim_addr_base(p->addr_base),
       addrRanges(p->addr_ranges.begin(), p->addr_ranges.end()) {
   for (int i = 0; i < p->input + p->output; i++) {
     regs.push_back(make_pair<PIMKernel::dataType, DataStatus>(0, dataEmpty));
+    ori_indices.push_back(std::vector<unsigned>());
+    reg_idx.push_back(0);
+    offsets.push_back(0);
     data.push_back(0);
   }
   raw_data = new uint8_t[p->input];
@@ -42,22 +46,6 @@ void PIMKernel::init() {
 bool PIMKernel::recvTimingReq(PacketPtr pkt) {
   DPRINTF(PIM, "Get data request\n");
   if (status == Finish) {
-    //assert(pkt->getSize() == size * num);
-    //auto *state = pkt->senderState;
-    //while (state->predecessor)
-    //  state = state->predecessor;
-    //auto *senderState = dynamic_cast<Packet::PIMSenderState *>(state);
-    //assert(senderState);
-    //if (senderState->addr.size() != addrs.size()) {
-    //  DPRINTF(PIM, "ERR: size does not match\n");
-    //  return false;
-    //}
-    //for (int i = 0; i < senderState->addr.size(); i++) {
-    //  if (senderState->addr[i] != addrs[i]) {
-    //    DPRINTF(PIM, "ERR: address does not match %d\n", i);
-    //    return false;
-    //  }
-    //}
     DPRINTF(PIM, "Return data\n");
     // Add request mask to raw_data.
     for (int i = 0; i < num; i++)
@@ -148,9 +136,9 @@ void PIMKernel::tick() {
     int toProc = locateLatest();
     if (toProc < _input) {
       Request::Flags flags = 0;
-      RequestPtr req = new Request(regs[toProc].first, size, flags, 0);
+      RequestPtr req = new Request(regs[toProc].first, blkSize, flags, 0);
       PacketPtr pkt = new Packet(req, MemCmd::PIMRead);
-      uint8_t *empty = new uint8_t[size];
+      uint8_t *empty = new uint8_t[blkSize];
       pkt->dataDynamic(empty);
       Packet::PIMSenderState *senderState =
           new Packet::PIMSenderState(_id, toProc);
@@ -195,6 +183,30 @@ void PIMKernel::tick() {
   }
 }
 
+void PIMKernel::coalesce(int idx, Addr addr) {
+  if (addr == 0)
+    return;
+  Addr blk_addr = addr & ~(Addr(blkSize - 1));
+  int i = 0;
+  while (regs[i].second == addrReady) {
+    if (regs[i].first == blk_addr) {
+      ori_indices[i].push_back(idx);
+      reg_idx[idx] = i;
+      offsets[idx] = addr - blk_addr;
+      return;
+    }
+    i++;
+  }
+
+  // Add new entry.
+  assert(i < _input);
+  regs[i].first = blk_addr;
+  regs[i].second = addrReady;
+  ori_indices[i].push_back(idx);
+  reg_idx[idx] = i;
+  offsets[idx] = addr - blk_addr;
+}
+
 void PIMKernel::start() {
   if (funcQueue.empty())
     return;
@@ -204,19 +216,21 @@ void PIMKernel::start() {
       dynamic_cast<Packet::PIMSenderState *>(pkt->senderState);
   assert(senderState);
   addrs = senderState->addr;
-  for (int i = 0; i < senderState->addr.size(); i++) {
-    regs[i].first = senderState->addr[i];
-    // Distinguish empty requests.
-    if (senderState->addr[i])
-      regs[i].second = addrReady;
-    else
-      regs[i].second = dataEmpty;
-  }
-  for (int i = senderState->addr.size(); i < _input; i++)
+  for (int i = 0; i < _input; i++) {
     regs[i].second = dataEmpty;
-  // Zero raw_data, because we need to return 0 for data that is not requested.
-  for (int i = 0; i < _input; i++)
+    ori_indices[i].clear();
+    // Zero raw_data, because we need to return 0 for data that is not
+    // requested.
     raw_data[i] = 0;
+  }
+  for (int i = 0; i < senderState->addr.size(); i++)
+    coalesce(i, senderState->addr[i]);
+  //for (int i = 0; i < senderState->addr.size(); i++) {
+  //  regs[i].first = senderState->addr[i];
+  //  // Distinguish empty requests.
+  //  if (senderState->addr[i])
+  //    regs[i].second = addrReady;
+  //}
   size = pkt->getSize();
   num = senderState->addr.size();
   DPRINTF(PIM, "Start: size = %d, num = %d\n", size, num);
@@ -260,22 +274,35 @@ bool PIMKernel::doDataCallback(PacketPtr pkt, Tick response_time) {
   assert(senderState);
   int i = senderState->procid;
   assert(i < _output + _input);
-  if (size == 4) {
-    data[i] = *pkt->getPtr<int32_t>();
-    ((int32_t *)raw_data)[i] = *pkt->getPtr<int32_t>();
-  } else {
-    assert(size == 8);
-    data[i] = *pkt->getPtr<int64_t>();
-    ((int64_t *)raw_data)[i] = *pkt->getPtr<int64_t>();
-  }
-
   assert(regs[i].second == addrReady ||
          regs[i].second == dataWaitingResp);
   regs[i].second = dataFinish;
+  for (unsigned j : ori_indices[i]) {
+    assert(reg_idx[j] == i);
+    if (size == 4) {
+      data[j] = *(pkt->getPtr<int32_t>() + offsets[j] / size);
+      ((int32_t *)raw_data)[j] = data[j];
+    } else {
+      assert(size == 8);
+      data[j] = *(pkt->getPtr<int64_t>() + offsets[j] / size);
+      ((int64_t *)raw_data)[i] = data[j];
+    }
+    DPRINTF(PIM, "Receive %d, [0x%llx] [%d]- %lld : status [%d]\n", i,
+            addrs[j], j, data[j], status);
+  }
+  //if (size == 4) {
+  //  data[i] = *pkt->getPtr<int32_t>();
+  //  ((int32_t *)raw_data)[i] = *pkt->getPtr<int32_t>();
+  //} else {
+  //  assert(size == 8);
+  //  data[i] = *pkt->getPtr<int64_t>();
+  //  ((int64_t *)raw_data)[i] = *pkt->getPtr<int64_t>();
+  //}
+  //DPRINTF(PIM, "Receive [0x%llx] [%d]- %lld [%d] : status [%d]\n",
+  //        pkt->getAddr(), i, data[i], regs[i].second, status);
+
   if (isReady())
     status = Finish;
-  DPRINTF(PIM, "Receive [0x%llx] [%d]- %lld [%d] : status [%d]\n",
-          pkt->getAddr(), i, data[i], regs[i].second, status);
   delete senderState;
   delete pkt->req;
   delete pkt;

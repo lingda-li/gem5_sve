@@ -51,4 +51,7 @@ class PIMKernel(MemObject):
 
     addr_base = Param.Addr(0, "Base address of the kernels")
 
+    # Get the block size from the parent (system)
+    block_size = Param.Int(Parent.cache_line_size, "block size in bytes")
+
 
