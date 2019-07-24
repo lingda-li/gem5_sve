@@ -145,7 +145,10 @@ void PIMKernel::tick() {
       pkt->pushSenderState(senderState);
 
       if (port.sendTimingReq(pkt)) {
-        read_packets++;
+        if (pkt->isRead())
+          read_packets++;
+        else
+          write_packets++;
         status = WaitingResp;
         DPRINTF(PIM, "Send to the memory [0x%llx] - [%d]\n",
                 regs[toProc].first, toProc);
@@ -155,7 +158,7 @@ void PIMKernel::tick() {
         DPRINTF(PIM, "Fail to send to the memory %d\n", toProc);
         retry_pkt = pkt;
         status = SendRetry;
-        read_retry++;
+        retry_failed++;
       }
     } else if (isReady())
       status = Finish;
@@ -323,8 +326,10 @@ void PIMKernel::recvReqRetry() {
     regs[senderState->procid].second = dataWaitingResp;
     if (retry_pkt->isRead()) {
       read_retry++;
+      read_packets++;
     } else {
       write_retry++;
+      write_packets++;
     }
   } else {
     retry_failed++;
