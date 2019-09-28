@@ -238,6 +238,7 @@ ROB<Impl>::insertInst(const DynInstPtr &inst)
     tail--;
 
     inst->setInROB();
+    inst->in_rob_tick = curTick();
 
     ++numInstsInROB;
     ++threadEntries[tid];

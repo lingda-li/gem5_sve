@@ -1340,9 +1340,10 @@ DefaultFetch<Impl>::fetch(bool &status_change)
             numInst++;
 
 #if TRACING_ON
-            if (DTRACE(O3PipeView)) {
-                instruction->fetchTick = curTick();
-            }
+            //if (DTRACE(O3PipeView)) {
+            //    instruction->fetchTick = curTick();
+            //}
+            instruction->fetchTick = curTick();
 #endif
 
             nextPC = thisPC;

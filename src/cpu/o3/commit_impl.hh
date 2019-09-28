@@ -146,6 +146,10 @@ DefaultCommit<Impl>::DefaultCommit(O3CPU *_cpu, DerivO3CPUParams *params)
         renameMap[tid] = nullptr;
     }
     interrupt = NoFault;
+    //open file sample.txt in write mode
+    tptr = fopen("trace.txt", "w");
+    if (tptr == NULL)
+        printf("Could not open file");
 }
 
 template <class Impl>
@@ -1316,6 +1320,7 @@ DefaultCommit<Impl>::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     }
     DPRINTF(Commit, "Committing instruction with [sn:%lli] PC %s\n",
             head_inst->seqNum, head_inst->pcState());
+    dumpInst(head_inst);
     if (head_inst->traceData) {
         head_inst->traceData->setFetchSeq(head_inst->seqNum);
         head_inst->traceData->setCPSeq(thread[tid]->numOp);
@@ -1583,6 +1588,31 @@ DefaultCommit<Impl>::oldestReady()
     } else {
         return InvalidThreadID;
     }
+}
+
+template<class Impl>
+void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
+{
+  // inst->dump();
+  auto staticInst = inst->staticInst;
+  //fprintf(tptr, "%d %lu %lu %lu\n", staticInst->opClass(), inst->in_rob_tick,
+  //        inst->out_rob_tick - inst->in_rob_tick, curTick());
+  fprintf(tptr, "%d %lu %lu %lu\n", staticInst->opClass(), inst->fetchTick,
+          inst->out_rob_tick - inst->fetchTick, curTick());
+  fprintf(tptr, "%d ", staticInst->numSrcRegs());
+  for (int i = 0; i < staticInst->numSrcRegs(); i++) {
+    // cprintf("%d ", staticInst->srcRegIdx(i));
+    fprintf(tptr, "%d %hu ", staticInst->srcRegIdx(i).classValue(),
+            staticInst->srcRegIdx(i).index());
+  }
+  fprintf(tptr, "\n");
+  fprintf(tptr, "%d ", staticInst->numDestRegs());
+  for (int i = 0; i < staticInst->numDestRegs(); i++) {
+    // cprintf("%d ", staticInst->destRegIdx(i));
+    fprintf(tptr, "%d %hu ", staticInst->destRegIdx(i).classValue(),
+            staticInst->destRegIdx(i).index());
+  }
+  fprintf(tptr, "\n");
 }
 
 #endif//__CPU_O3_COMMIT_IMPL_HH__

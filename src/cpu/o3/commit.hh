@@ -230,6 +230,11 @@ class DefaultCommit
      */
     void generateTCEvent(ThreadID tid);
 
+    FILE *tptr;
+
+    /** Dump an instruction. */
+    void dumpInst(const DynInstPtr &inst);
+
   private:
     /** Updates the overall status of commit with the nextStatus, and
      * tell the CPU if commit is active/inactive.

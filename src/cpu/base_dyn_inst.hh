@@ -168,6 +168,10 @@ class BaseDynInst : public ExecContext, public RefCounted
     /** InstRecord that tracks this instructions. */
     Trace::InstRecord *traceData;
 
+    // status
+    Tick in_rob_tick;
+    Tick out_rob_tick;
+
   protected:
     /** The result of the instruction; assumes an instruction can have many
      *  destination registers.
@@ -774,7 +778,10 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool isExecuted() const { return status[Executed]; }
 
     /** Sets this instruction as ready to commit. */
-    void setCanCommit() { status.set(CanCommit); }
+    void setCanCommit() {
+      status.set(CanCommit);
+      out_rob_tick = curTick();
+    }
 
     /** Clears this instruction as being ready to commit. */
     void clearCanCommit() { status.reset(CanCommit); }

@@ -653,6 +653,21 @@ Cache::promoteWholeLineWrites(PacketPtr pkt)
 bool
 Cache::recvTimingReq(PacketPtr pkt)
 {
+    if (pkt->needsResponse()) {
+      // std::cout << "haha " << pkt->print() << "\n";
+      if (pkt->isLLSC() && pkt->isWrite()) {
+        functionalAccess(pkt, true);
+        pkt->req->setExtraData(1);
+      } else if (pkt->isClean()) {
+        pkt->makeTimingResponse();
+      } else
+        functionalAccess(pkt, true);
+      // pkt->makeTimingResponse();
+      Tick request_time = clockEdge(lookupLatency) + pkt->headerDelay;
+      pkt->headerDelay = pkt->payloadDelay = 0;
+      cpuSidePort->schedTimingResp(pkt, request_time, true);
+    }
+    return true;
     DPRINTF(CacheTags, "%s tags:\n%s\n", __func__, tags->print());
 
     assert(pkt->isRequest());
