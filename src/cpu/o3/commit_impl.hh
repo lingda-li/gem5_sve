@@ -1593,25 +1593,31 @@ DefaultCommit<Impl>::oldestReady()
 template<class Impl>
 void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
 {
-  // inst->dump();
+  //std::string out;
+  //inst->dump(out);
+  //fprintf(tptr, "%s\n", out.c_str());
   auto staticInst = inst->staticInst;
-  //fprintf(tptr, "%d %lu %lu %lu\n", staticInst->opClass(), inst->in_rob_tick,
-  //        inst->out_rob_tick - inst->in_rob_tick, curTick());
-  fprintf(tptr, "%d %lu %lu %lu\n", staticInst->opClass(), inst->fetchTick,
+  fprintf(tptr, "%lu %lu %lu  ", inst->fetchTick,
           inst->out_rob_tick - inst->fetchTick, curTick());
+  // fprintf(tptr, "%d %d %d %d\n", inst->isMacroop(), inst->isMicroop(),
+  // inst->isFirstMicroop(), inst->isLastMicroop());
+  // if (inst->isMemBarrier())
+  //  fprintf(tptr, "haha %d\n", inst->isWriteBarrier());
+  //if (inst->isFirstMicroop())
+  //  fprintf(tptr, "%s\n",
+  //          inst->macroop->disassemble(inst->pcState().instAddr()).c_str());
+  fprintf(tptr, "%d %d %d %d %d %lu  ", inst->opClass(), inst->isMicroop(),
+          inst->isCondCtrl(), inst->isUncondCtrl(), inst->isMemBarrier(),
+          inst->pcState().instAddr() % 64);
   fprintf(tptr, "%d ", staticInst->numSrcRegs());
-  for (int i = 0; i < staticInst->numSrcRegs(); i++) {
-    // cprintf("%d ", staticInst->srcRegIdx(i));
+  for (int i = 0; i < staticInst->numSrcRegs(); i++)
     fprintf(tptr, "%d %hu ", staticInst->srcRegIdx(i).classValue(),
             staticInst->srcRegIdx(i).index());
-  }
-  fprintf(tptr, "\n");
+  fprintf(tptr, " ");
   fprintf(tptr, "%d ", staticInst->numDestRegs());
-  for (int i = 0; i < staticInst->numDestRegs(); i++) {
-    // cprintf("%d ", staticInst->destRegIdx(i));
+  for (int i = 0; i < staticInst->numDestRegs(); i++)
     fprintf(tptr, "%d %hu ", staticInst->destRegIdx(i).classValue(),
             staticInst->destRegIdx(i).index());
-  }
   fprintf(tptr, "\n");
 }
 
