@@ -297,6 +297,11 @@ DefaultCommit<Impl>::regStats()
         .name(name() +  ".sve_refs")
         .desc("Number of SVE memory references committed")
         ;
+
+    numSquashAfter
+        .name(name() + ".squash_after")
+        .desc("The number of squash after instructions")
+        ;
 }
 
 template <class Impl>
@@ -1596,6 +1601,12 @@ void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
   //std::string out;
   //inst->dump(out);
   //fprintf(tptr, "%s\n", out.c_str());
+  //if (inst->fetchTick - lastFetchTick > 5000 && !isLastBranch)
+  //  fprintf(tptr, "!! %lu\n", inst->fetchTick - lastFetchTick);
+  //lastFetchTick = inst->fetchTick;
+  //isLastBranch = inst->isCondCtrl() || inst->isUncondCtrl();
+  if (inst->isSquashAfter())
+    numSquashAfter++;
   auto staticInst = inst->staticInst;
   fprintf(tptr, "%lu %lu %lu  ", inst->fetchTick,
           inst->out_rob_tick - inst->fetchTick, curTick());
@@ -1606,8 +1617,9 @@ void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
   //if (inst->isFirstMicroop())
   //  fprintf(tptr, "%s\n",
   //          inst->macroop->disassemble(inst->pcState().instAddr()).c_str());
-  fprintf(tptr, "%d %d %d %d %d %lu  ", inst->opClass(), inst->isMicroop(),
-          inst->isCondCtrl(), inst->isUncondCtrl(), inst->isMemBarrier(),
+  fprintf(tptr, "%d %d %d %d %d %d %d %lu  ", inst->opClass(),
+          inst->isMicroop(), inst->isCondCtrl(), inst->isUncondCtrl(),
+          inst->isSquashAfter(), inst->mispredicted(), inst->isMemBarrier(),
           inst->pcState().instAddr() % 64);
   fprintf(tptr, "%d ", staticInst->numSrcRegs());
   for (int i = 0; i < staticInst->numSrcRegs(); i++)

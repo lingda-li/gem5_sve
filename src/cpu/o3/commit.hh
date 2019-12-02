@@ -233,6 +233,8 @@ class DefaultCommit
     FILE *tptr;
 
     /** Dump an instruction. */
+    Tick lastFetchTick;
+    bool isLastBranch = false;
     void dumpInst(const DynInstPtr &inst);
 
   private:
@@ -528,6 +530,9 @@ class DefaultCommit
 
     /** Number of cycles where the commit bandwidth limit is reached. */
     Stats::Scalar commitEligibleSamples;
+
+    /** Stat for the total number of instructions that caused a squash. */
+    Stats::Scalar numSquashAfter;
 };
 
 #endif // __CPU_O3_COMMIT_HH__
