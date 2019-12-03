@@ -1617,10 +1617,12 @@ void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
   //if (inst->isFirstMicroop())
   //  fprintf(tptr, "%s\n",
   //          inst->macroop->disassemble(inst->pcState().instAddr()).c_str());
-  fprintf(tptr, "%d %d %d %d %d %d %d %lu  ", inst->opClass(),
+  fprintf(tptr, "%d %d %d %d %d %d %d %d  ", inst->opClass(),
           inst->isMicroop(), inst->isCondCtrl(), inst->isUncondCtrl(),
-          inst->isSquashAfter(), inst->mispredicted(), inst->isMemBarrier(),
-          inst->pcState().instAddr() % 64);
+          inst->isSquashAfter(), inst->isSerializeAfter(),
+          inst->isSerializeBefore(), inst->mispredicted());
+  fprintf(tptr, "%d %d %d %lu  ", inst->isMemBarrier(), inst->isQuiesce(),
+          inst->isNonSpeculative(), inst->pcState().instAddr() % 64);
   fprintf(tptr, "%d ", staticInst->numSrcRegs());
   for (int i = 0; i < staticInst->numSrcRegs(); i++)
     fprintf(tptr, "%d %hu ", staticInst->srcRegIdx(i).classValue(),
