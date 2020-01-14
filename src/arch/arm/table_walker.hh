@@ -800,6 +800,9 @@ class TableWalker : public MemObject
         /** Page entries walked during service (for stats) */
         unsigned levels;
 
+        int DepthByLevel[4];
+        Addr addrByLevel[4];
+
         void doL1Descriptor();
         void doL2Descriptor();
 
@@ -926,7 +929,10 @@ class TableWalker : public MemObject
     void doL2DescriptorWrapper();
     EventFunctionWrapper doL2DescEvent;
 
-    void doLongDescriptor();
+    void doLongDescriptor(int *walkDepth);
+    void doLongDescriptor() {
+      doLongDescriptor(NULL);
+    }
 
     void doL0LongDescriptorWrapper();
     EventFunctionWrapper doL0LongDescEvent;
@@ -964,6 +970,8 @@ class TableWalker : public MemObject
 
     Fault testWalk(Addr pa, Addr size, TlbEntry::DomainType domain,
                    LookupLevel lookup_level);
+  public:
+    int LastDepth;
 };
 
 } // namespace ArmISA

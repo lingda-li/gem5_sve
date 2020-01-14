@@ -141,6 +141,10 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     int32_t commitTick;
     int32_t storeTick;
 #endif
+    int cachedepth = 0;
+    int fetchdepth = 0;
+    int iwalkDepth[4] = {-1, -1, -1, -1};
+    int dwalkDepth[4] = {-1, -1, -1, -1};
 
     /** Reads a misc. register, including any side-effects the read
      * might have as defined by the architecture.

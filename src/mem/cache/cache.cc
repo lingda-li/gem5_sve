@@ -321,6 +321,10 @@ Cache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     // that can modify its value.
     blk = tags->accessBlock(pkt, pkt->getAddr(), pkt->isSecure(), lat);
 
+    // Record path in caches
+    if (blk == nullptr)
+      incLevelCount(pkt);
+
     DPRINTF(Cache, "%s %s\n", pkt->print(),
             blk ? "hit " + blk->print() : "miss");
 
@@ -653,21 +657,21 @@ Cache::promoteWholeLineWrites(PacketPtr pkt)
 bool
 Cache::recvTimingReq(PacketPtr pkt)
 {
-    if (pkt->needsResponse()) {
-      // std::cout << "haha " << pkt->print() << "\n";
-      if (pkt->isLLSC() && pkt->isWrite()) {
-        functionalAccess(pkt, true);
-        pkt->req->setExtraData(1);
-      } else if (pkt->isClean()) {
-        pkt->makeTimingResponse();
-      } else
-        functionalAccess(pkt, true);
-      // pkt->makeTimingResponse();
-      Tick request_time = clockEdge(lookupLatency) + pkt->headerDelay;
-      pkt->headerDelay = pkt->payloadDelay = 0;
-      cpuSidePort->schedTimingResp(pkt, request_time, true);
-    }
-    return true;
+    //if (pkt->needsResponse()) {
+    //  // std::cout << "haha " << pkt->print() << "\n";
+    //  if (pkt->isLLSC() && pkt->isWrite()) {
+    //    functionalAccess(pkt, true);
+    //    pkt->req->setExtraData(1);
+    //  } else if (pkt->isClean()) {
+    //    pkt->makeTimingResponse();
+    //  } else
+    //    functionalAccess(pkt, true);
+    //  // pkt->makeTimingResponse();
+    //  Tick request_time = clockEdge(lookupLatency) + pkt->headerDelay;
+    //  pkt->headerDelay = pkt->payloadDelay = 0;
+    //  cpuSidePort->schedTimingResp(pkt, request_time, true);
+    //}
+    //return true;
     DPRINTF(CacheTags, "%s tags:\n%s\n", __func__, tags->print());
 
     assert(pkt->isRequest());

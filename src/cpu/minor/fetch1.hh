@@ -164,7 +164,7 @@ class Fetch1 : public Named
          *  the request on to the ports' handleTLBResponse member
          *  function */
         void finish(const Fault &fault_, RequestPtr request_,
-                    ThreadContext *tc, BaseTLB::Mode mode);
+                    ThreadContext *tc, BaseTLB::Mode mode, int *depth);
 
       public:
         FetchRequest(Fetch1 &fetch_, InstId id_, TheISA::PCState pc_) :

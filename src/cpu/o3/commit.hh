@@ -235,6 +235,7 @@ class DefaultCommit
     /** Dump an instruction. */
     Tick lastFetchTick;
     bool isLastBranch = false;
+    Tick lastCompleteTick;
     void dumpInst(const DynInstPtr &inst);
 
   private:

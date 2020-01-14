@@ -610,6 +610,10 @@ class BaseCache : public MemObject
 
     }
 
+    void incLevelCount(PacketPtr pkt)
+    {
+        pkt->req->lookup_depth++;
+    }
 };
 
 #endif //__MEM_CACHE_BASE_HH__

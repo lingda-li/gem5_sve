@@ -176,7 +176,7 @@ Stage2LookUp::mergeTe(RequestPtr req, BaseTLB::Mode mode)
 
 void
 Stage2LookUp::finish(const Fault &_fault, RequestPtr req,
-    ThreadContext *tc, BaseTLB::Mode mode)
+    ThreadContext *tc, BaseTLB::Mode mode, int *depth)
 {
     fault = _fault;
     // if we haven't got the table entry get it now

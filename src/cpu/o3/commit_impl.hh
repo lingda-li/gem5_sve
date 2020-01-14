@@ -572,6 +572,9 @@ template <class Impl>
 void
 DefaultCommit<Impl>::squashAll(ThreadID tid)
 {
+    //if (curTick() >= 3176564692500 && curTick() <= 3176564700500) {
+    //  printf("S!! %lu\n", curTick());
+    //}
     // If we want to include the squashing instruction in the squash,
     // then use one older sequence number.
     // Hopefully this doesn't mess things up.  Basically I want to squash
@@ -661,6 +664,9 @@ template <class Impl>
 void
 DefaultCommit<Impl>::squashAfter(ThreadID tid, const DynInstPtr &head_inst)
 {
+    //if (curTick() >= 3176564692500 && curTick() <= 3176564700500) {
+    //  printf("SA!! %lu\n", curTick());
+    //}
     DPRINTF(Commit, "Executing squash after for [tid:%i] inst [sn:%lli]\n",
             tid, head_inst->seqNum);
 
@@ -917,6 +923,10 @@ DefaultCommit<Impl>::commit()
                 fromIEW->branchTaken[tid];
             toIEW->commitInfo[tid].squashInst =
                                     rob->findInst(tid, squashed_inst);
+            //if (curTick() >= 3176564692500 && curTick() <= 3176564700500) {
+            //  printf("Squash!! %lu: ", curTick());
+            //  toIEW->commitInfo[tid].squashInst->dump();
+            //}
             if (toIEW->commitInfo[tid].mispredictInst) {
                 if (toIEW->commitInfo[tid].mispredictInst->isUncondCtrl()) {
                      toIEW->commitInfo[tid].branchTaken = true;
@@ -1598,18 +1608,27 @@ DefaultCommit<Impl>::oldestReady()
 template<class Impl>
 void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
 {
-  //std::string out;
-  //inst->dump(out);
-  //fprintf(tptr, "%s\n", out.c_str());
-  //if (inst->fetchTick - lastFetchTick > 5000 && !isLastBranch)
-  //  fprintf(tptr, "!! %lu\n", inst->fetchTick - lastFetchTick);
-  //lastFetchTick = inst->fetchTick;
-  //isLastBranch = inst->isCondCtrl() || inst->isUncondCtrl();
+  // std::string out;
+  // inst->dump(out);
+  // fprintf(tptr, "%s\n", out.c_str());
+  // if (inst->fetchTick - lastFetchTick > 500 * 30 && inst->fetchTick -
+  // lastFetchTick < lastCompleteTick - 5000)
+  //  fprintf(tptr, "ha %lu %lu %lu %lu\n", inst->fetchTick - lastFetchTick,
+  //  curTick(), inst->fetchTick, lastCompleteTick);
+  // if (inst->fetchTick - lastFetchTick == 7000 && inst->out_rob_tick -
+  // inst->fetchTick == 5500 && inst->pcState().instAddr() % 64 == 20 &&
+  // inst->opClass() == 39 && inst->pcState().instAddr() % 64 == 20) {
+  //  printf("!! %lu: ", curTick());
+  //  inst->dump();
+  //}
+  lastFetchTick = inst->fetchTick;
+  isLastBranch = inst->isCondCtrl() || inst->isUncondCtrl();
   if (inst->isSquashAfter())
     numSquashAfter++;
   auto staticInst = inst->staticInst;
   fprintf(tptr, "%lu %lu %lu  ", inst->fetchTick,
           inst->out_rob_tick - inst->fetchTick, curTick());
+  lastCompleteTick = inst->out_rob_tick - inst->fetchTick;
   // fprintf(tptr, "%d %d %d %d\n", inst->isMacroop(), inst->isMicroop(),
   // inst->isFirstMicroop(), inst->isLastMicroop());
   // if (inst->isMemBarrier())
@@ -1632,6 +1651,15 @@ void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
   for (int i = 0; i < staticInst->numDestRegs(); i++)
     fprintf(tptr, "%d %hu ", staticInst->destRegIdx(i).classValue(),
             staticInst->destRegIdx(i).index());
+  fprintf(tptr, " %d %lx %u %d", inst->effAddrValid(),
+          inst->effAddrValid() ? inst->effAddr : 0,
+          inst->effAddrValid() ? inst->effSize : 0, inst->cachedepth);
+  for (int i = 1; i < 4; i++)
+    fprintf(tptr, " %d", inst->dwalkDepth[i]);
+  fprintf(tptr, "  %lx %d", inst->instAddr(), inst->fetchdepth);
+  for (int i = 1; i < 4; i++)
+    fprintf(tptr, " %d", inst->iwalkDepth[i]);
+  assert(inst->iwalkDepth[0] == -1 && inst->dwalkDepth[0] == -1);
   fprintf(tptr, "\n");
 }
 

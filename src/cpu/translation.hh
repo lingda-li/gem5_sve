@@ -250,7 +250,7 @@ class DataTranslation : public BaseTLB::Translation
      */
     void
     finish(const Fault &fault, RequestPtr req, ThreadContext *tc,
-           BaseTLB::Mode mode)
+           BaseTLB::Mode mode, int *depth)
     {
         assert(state);
         assert(mode == state->mode);

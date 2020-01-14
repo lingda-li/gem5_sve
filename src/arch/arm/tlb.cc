@@ -991,7 +991,7 @@ TLB::checkPermissions64(TlbEntry *te, RequestPtr req, Mode mode,
 Fault
 TLB::translateFs(RequestPtr req, ThreadContext *tc, Mode mode,
         Translation *translation, bool &delay, bool timing,
-        TLB::ArmTranslationType tranType, bool functional)
+        TLB::ArmTranslationType tranType, TlbEntry **tep, bool functional)
 {
     // No such thing as a functional timing access
     assert(!(timing && functional));
@@ -1097,6 +1097,7 @@ TLB::translateFs(RequestPtr req, ThreadContext *tc, Mode mode,
     TlbEntry mergeTe;
     Fault fault = getResultTe(&te, req, tc, mode, translation, timing,
                               functional, &mergeTe);
+    *tep = te;
     // only proceed if we have a valid table entry
     if ((te == NULL) && (fault == NoFault)) delay = true;
 
@@ -1202,9 +1203,10 @@ TLB::translateFunctional(RequestPtr req, ThreadContext *tc, Mode mode,
       return NoFault;
     }
     if (FullSystem)
-        fault = translateFs(req, tc, mode, NULL, delay, false, tranType, true);
-   else
-        fault = translateSe(req, tc, mode, NULL, delay, false);
+      fault =
+          translateFs(req, tc, mode, NULL, delay, false, tranType, NULL, true);
+    else
+      fault = translateSe(req, tc, mode, NULL, delay, false);
     assert(!delay);
     return fault;
 }
@@ -1239,8 +1241,11 @@ TLB::translateComplete(RequestPtr req, ThreadContext *tc,
       translation->finish(NoFault, req, tc, mode);
       return NoFault;
     }
+    TlbEntry *tev = NULL;
+    TlbEntry **te = &tev;
     if (FullSystem)
-        fault = translateFs(req, tc, mode, translation, delay, true, tranType);
+      fault =
+          translateFs(req, tc, mode, translation, delay, true, tranType, te);
     else
         fault = translateSe(req, tc, mode, translation, delay, true);
     DPRINTF(TLBVerbose, "Translation returning delay=%d fault=%d\n", delay, fault !=
@@ -1252,9 +1257,18 @@ TLB::translateComplete(RequestPtr req, ThreadContext *tc,
     // one when the translation starts and again when the stage 1 translation
     // completes.
     if (translation && (callFromS2 || !stage2Req || req->hasPaddr() || fault != NoFault)) {
-        if (!delay)
-            translation->finish(fault, req, tc, mode);
-        else
+        if (!delay) {
+            int walkDepth[4];
+            if (*te) {
+                assert(req->hasPaddr());
+                for (int i = 0; i < 4; i++) {
+                  walkDepth[i] = (*te)->walkDepth[i];
+                  (*te)->walkDepth[i] = -1;
+                }
+                translation->finish(fault, req, tc, mode, walkDepth);
+            } else
+                translation->finish(fault, req, tc, mode);
+        } else
             translation->markDelayed();
     }
     return fault;

@@ -424,6 +424,7 @@ DefaultFetch<Impl>::processCacheCompletion(PacketPtr pkt)
 
     pkt->req->setAccessLatency();
     cpu->ppInstAccessComplete->notify(pkt);
+    depth = pkt->req->getAccessDepth();
     // Reset the mem req to NULL.
     delete pkt->req;
     delete pkt;
@@ -650,10 +651,14 @@ DefaultFetch<Impl>::fetchCacheLine(Addr vaddr, ThreadID tid, Addr pc)
 
 template <class Impl>
 void
-DefaultFetch<Impl>::finishTranslation(const Fault &fault, RequestPtr mem_req)
+DefaultFetch<Impl>::finishTranslation(const Fault &fault, RequestPtr mem_req,
+                                      int *wdepth)
 {
     ThreadID tid = cpu->contextToThread(mem_req->contextId());
     Addr fetchBufferBlockPC = mem_req->getVaddr();
+    if (wdepth)
+      for (int i = 0; i < 4; i++)
+        walkDepth[i] = wdepth[i];
 
     assert(!cpu->switchedOut());
 
@@ -1261,6 +1266,9 @@ DefaultFetch<Impl>::fetch(bool &status_change)
     const unsigned numInsts = fetchBufferSize / instSize;
     unsigned blkOffset = (fetchAddr - fetchBufferPC[tid]) / instSize;
 
+    //if (curTick() >= 3176159566500 && curTick() <= 3176159583500)
+    //  printf("T %lu\n", curTick());
+
     // Loop through instruction memory from the cache.
     // Keep issuing while fetchWidth is available and branch is not
     // predicted taken
@@ -1345,6 +1353,19 @@ DefaultFetch<Impl>::fetch(bool &status_change)
             //}
             instruction->fetchTick = curTick();
 #endif
+            //if (curTick() >= 3176564692500 && curTick() <= 3176564700500) {
+            //  printf("!! %lu: ", curTick());
+            //  instruction->dump();
+            //}
+            if (status_change && numInst == 1) {
+              instruction->fetchdepth = depth;
+              for (int i = 0; i < 4; i++)
+                instruction->iwalkDepth[i] = walkDepth[i];
+            } else {
+              instruction->fetchdepth = 0;
+              for (int i = 0; i < 4; i++)
+                instruction->iwalkDepth[i] = -1;
+            }
 
             nextPC = thisPC;
 

@@ -619,7 +619,7 @@ class LSQ {
         inline virtual ~SingleDataRequest() {}
         virtual void initiateTranslation();
         virtual void finish(const Fault &fault, RequestPtr req,
-                ThreadContext* tc, BaseTLB::Mode mode);
+                ThreadContext* tc, BaseTLB::Mode mode, int* depth = NULL);
         virtual bool recvTimingResp(PacketPtr pkt);
         virtual void sendPacketToCache();
         virtual void buildPackets();
@@ -689,7 +689,7 @@ class LSQ {
             }
         }
         virtual void finish(const Fault &fault, RequestPtr req,
-                ThreadContext* tc, BaseTLB::Mode mode);
+                ThreadContext* tc, BaseTLB::Mode mode, int* depth = NULL);
         virtual bool recvTimingResp(PacketPtr pkt);
         virtual void initiateTranslation();
         virtual void sendPacketToCache();

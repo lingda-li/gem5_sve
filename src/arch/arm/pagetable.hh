@@ -146,6 +146,8 @@ struct TlbEntry : public Serializable
     bool xn;                // Execute Never
     bool pxn;               // Privileged Execute Never (LPAE only)
 
+    int walkDepth[4];
+
     //Construct an entry that maps to physical address addr for SE mode
     TlbEntry(Addr _asn, Addr _vaddr, Addr _paddr,
              bool uncacheable, bool read_only) :
@@ -162,6 +164,8 @@ struct TlbEntry : public Serializable
         // @todo Check the memory type
         if (read_only)
             warn("ARM TlbEntry does not support read-only mappings\n");
+      for (int i = 0; i < 4; i++)
+        walkDepth[i] = -1;
     }
 
     TlbEntry() :
@@ -175,6 +179,8 @@ struct TlbEntry : public Serializable
         // no restrictions by default, hap = 0x3
 
         // @todo Check the memory type
+      for (int i = 0; i < 4; i++)
+        walkDepth[i] = -1;
     }
 
     void

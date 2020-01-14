@@ -948,6 +948,9 @@ class Request
     bool isCacheInvalidate() const { return _flags.isSet(INVALIDATE); }
     bool isCacheMaintenance() const { return _flags.isSet(CLEAN|INVALIDATE); }
     /** @} */
+
+    // Level of the cache hierachy where this request was responded to
+    int lookup_depth = 0;
 };
 
 #endif // __MEM_REQUEST_HH__

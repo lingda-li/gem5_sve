@@ -137,6 +137,10 @@ TableWalker::WalkerState::WalkerState() :
     mode(BaseTLB::Read), tranType(TLB::NormalTran), l2Desc(l1Desc),
     delayed(false), tableWalker(nullptr)
 {
+  for (int i = 0; i < 4; i++) {
+    DepthByLevel[i] = -1;
+    addrByLevel[i] = 0;
+  }
 }
 
 void
@@ -336,12 +340,14 @@ TableWalker::walk(RequestPtr _req, ThreadContext *_tc, uint16_t _asid,
         }
         return fault;
     }
+    //printf("W %lu %lx\n", curTick(), currState->vaddr);
 
     if (pending || pendingQueue.size()) {
         pendingQueue.push_back(currState);
         currState = NULL;
         pendingChange();
     } else {
+        //printf("WGo\n");
         pending = true;
         pendingChange();
         if (currState->aarch64)
@@ -396,10 +402,11 @@ TableWalker::processWalkWrapper()
             f = processWalk();
 
         if (f != NoFault) {
-            curr_state_copy->transState->finish(f, curr_state_copy->req,
-                    curr_state_copy->tc, curr_state_copy->mode);
+          curr_state_copy->transState->finish(
+              f, curr_state_copy->req, curr_state_copy->tc,
+              curr_state_copy->mode, curr_state_copy->DepthByLevel);
 
-            delete curr_state_copy;
+          delete curr_state_copy;
         }
         return;
     }
@@ -971,6 +978,7 @@ TableWalker::processWalkAArch64()
     currState->longDesc.grainSize = tg;
 
     if (currState->timing) {
+        currState->addrByLevel[start_lookup_level] = desc_addr;
         fetchDescriptor(desc_addr, (uint8_t*) &currState->longDesc.data,
                         sizeof(uint64_t), flag, start_lookup_level,
                         LongDescEventByLevel[start_lookup_level], NULL);
@@ -1515,7 +1523,7 @@ TableWalker::doL1Descriptor()
 }
 
 void
-TableWalker::doLongDescriptor()
+TableWalker::doLongDescriptor(int *walkDepth)
 {
     if (currState->fault != NoFault) {
         return;
@@ -1612,6 +1620,23 @@ TableWalker::doLongDescriptor()
                         ArmFault::LpaeTran);
             } else {
                 insertTableEntry(currState->longDesc, true);
+                ExceptionLevel target_el = EL0;
+                if (currState->aarch64)
+                  target_el = currEL(currState->tc);
+                else
+                  target_el = EL1;
+                TlbEntry *te =
+                    tlb->lookup(currState->vaddr, currState->asid,
+                                currState->vmid, currState->isHyp,
+                                currState->isSecure, true, false, target_el);
+                assert(te);
+                //printf("HE");
+                if (walkDepth)
+                  for (int i = 0; i < 4; i++) {
+                    te->walkDepth[i] = walkDepth[i];
+                    //printf(" %d", te->walkDepth[i]);
+                  }
+                //printf("\n");
             }
         }
         return;
@@ -1695,7 +1720,9 @@ TableWalker::doLongDescriptor()
             }
 
             bool delayed;
-            delayed = fetchDescriptor(next_desc_addr, (uint8_t*)&currState->longDesc.data,
+            currState->addrByLevel[L] = next_desc_addr;
+            delayed = fetchDescriptor(next_desc_addr,
+                                      (uint8_t *)&currState->longDesc.data,
                                       sizeof(uint64_t), flag, -1, event,
                                       &TableWalker::doLongDescriptor);
             if (delayed) {
@@ -1893,6 +1920,7 @@ TableWalker::doLongDescriptorWrapper(LookupLevel curr_lookup_level)
     currState = stateQueues[curr_lookup_level].front();
     assert(curr_lookup_level == currState->longDesc.lookupLevel);
     currState->delayed = false;
+    currState->DepthByLevel[curr_lookup_level] = LastDepth;
 
     // if there's a stage2 translation object we don't need it any more
     if (currState->stage2Tran) {
@@ -1900,16 +1928,17 @@ TableWalker::doLongDescriptorWrapper(LookupLevel curr_lookup_level)
         currState->stage2Tran = NULL;
     }
 
-    DPRINTF(TLBVerbose, "calling doLongDescriptor for vaddr:%#x\n",
-            currState->vaddr_tainted);
-    doLongDescriptor();
+    DPRINTF(TLBVerbose, "calling doLongDescriptor for vaddr:%#x (%d)\n",
+            currState->vaddr_tainted, curr_lookup_level);
+    doLongDescriptor(currState->DepthByLevel);
 
     stateQueues[curr_lookup_level].pop_front();
 
     if (currState->fault != NoFault) {
         // A fault was generated
         currState->transState->finish(currState->fault, currState->req,
-                                      currState->tc, currState->mode);
+                                      currState->tc, currState->mode,
+                                      currState->DepthByLevel);
 
         pending = false;
         nextWalk(currState->tc);
@@ -2001,6 +2030,7 @@ TableWalker::fetchDescriptor(Addr descAddr, uint8_t *data, int numBytes,
         }
     } else {
         if (isTiming) {
+            //printf("En %lu %lx\n", curTick(), currState->vaddr);
             port->dmaAction(MemCmd::ReadReq, descAddr, numBytes, event, data,
                            currState->tc->getCpuPtr()->clockPeriod(),flags);
             if (queueIndex >= 0) {

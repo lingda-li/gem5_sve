@@ -47,6 +47,7 @@
 
 #include <utility>
 
+#include "arch/arm/table_walker.hh"
 #include "base/chunk_generator.hh"
 #include "debug/DMA.hh"
 #include "debug/Drain.hh"
@@ -90,6 +91,9 @@ DmaPort::handleResp(PacketPtr pkt, Tick delay)
     if (state->totBytes == state->numBytes) {
         if (state->completionEvent) {
             delay += state->delay;
+            if (TableWalker *walker_device =
+                    dynamic_cast<TableWalker *>(device))
+              walker_device->LastDepth = pkt->req->getAccessDepth();
             device->schedule(state->completionEvent, curTick() + delay);
         }
         delete state;

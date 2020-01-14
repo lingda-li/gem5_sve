@@ -333,10 +333,11 @@ class TLB : public BaseTLB
     }
 
     Fault translateFs(RequestPtr req, ThreadContext *tc, Mode mode,
-            Translation *translation, bool &delay,
-            bool timing, ArmTranslationType tranType, bool functional = false);
+                      Translation *translation, bool &delay, bool timing,
+                      ArmTranslationType tranType, TlbEntry **tep = NULL,
+                      bool functional = false);
     Fault translateSe(RequestPtr req, ThreadContext *tc, Mode mode,
-            Translation *translation, bool &delay, bool timing);
+                      Translation *translation, bool &delay, bool timing);
     Fault translateAtomic(RequestPtr req, ThreadContext *tc, Mode mode,
             ArmTranslationType tranType);
     Fault
