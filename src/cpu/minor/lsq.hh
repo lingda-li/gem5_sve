@@ -280,7 +280,8 @@ class LSQ : public Named
       protected:
         /** TLB interace */
         void finish(const Fault &fault, RequestPtr request_,
-                    ThreadContext *tc, BaseTLB::Mode mode, int *depth)
+                    ThreadContext *tc, BaseTLB::Mode mode, int *depth,
+                    Addr *addrs)
         { }
 
       public:
@@ -341,7 +342,8 @@ class LSQ : public Named
       protected:
         /** TLB interace */
         void finish(const Fault &fault, RequestPtr request_,
-                    ThreadContext *tc, BaseTLB::Mode mode, int *depth);
+                    ThreadContext *tc, BaseTLB::Mode mode, int *depth,
+                    Addr *addrs);
 
         /** Has my only packet been sent to the memory system but has not
          *  yet been responded to */
@@ -414,7 +416,8 @@ class LSQ : public Named
       protected:
         /** TLB response interface */
         void finish(const Fault &fault_, RequestPtr request_,
-                    ThreadContext *tc, BaseTLB::Mode mode, int *depth);
+                    ThreadContext *tc, BaseTLB::Mode mode, int *depth,
+                    Addr *addrs);
 
       public:
         SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,

@@ -332,6 +332,7 @@ class TLB : public BaseTLB
         return _attr;
     }
 
+    // Modified to pass TlbEntry.
     Fault translateFs(RequestPtr req, ThreadContext *tc, Mode mode,
                       Translation *translation, bool &delay, bool timing,
                       ArmTranslationType tranType, TlbEntry **tep = NULL,

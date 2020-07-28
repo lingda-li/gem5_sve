@@ -652,13 +652,17 @@ DefaultFetch<Impl>::fetchCacheLine(Addr vaddr, ThreadID tid, Addr pc)
 template <class Impl>
 void
 DefaultFetch<Impl>::finishTranslation(const Fault &fault, RequestPtr mem_req,
-                                      int *wdepth)
+                                      int *wdepth, Addr *addrs)
 {
     ThreadID tid = cpu->contextToThread(mem_req->contextId());
     Addr fetchBufferBlockPC = mem_req->getVaddr();
-    if (wdepth)
-      for (int i = 0; i < 4; i++)
+    if (wdepth) {
+      assert(addrs);
+      for (int i = 0; i < 4; i++) {
         walkDepth[i] = wdepth[i];
+        walkAddr[i] = addrs[i];
+      }
+    }
 
     assert(!cpu->switchedOut());
 
@@ -1359,12 +1363,18 @@ DefaultFetch<Impl>::fetch(bool &status_change)
             //}
             if (status_change && numInst == 1) {
               instruction->fetchdepth = depth;
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < 4; i++) {
                 instruction->iwalkDepth[i] = walkDepth[i];
+                instruction->iwalkAddr[i] = walkAddr[i];
+              }
+              for (int i = 0; i < 4; i++)
+                instruction->iWritebacks[i] = writebacks[i];
             } else {
               instruction->fetchdepth = 0;
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < 4; i++) {
                 instruction->iwalkDepth[i] = -1;
+                instruction->iwalkAddr[i] = 0;
+              }
             }
 
             nextPC = thisPC;

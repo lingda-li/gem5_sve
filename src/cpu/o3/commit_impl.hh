@@ -146,10 +146,14 @@ DefaultCommit<Impl>::DefaultCommit(O3CPU *_cpu, DerivO3CPUParams *params)
         renameMap[tid] = nullptr;
     }
     interrupt = NoFault;
-    //open file sample.txt in write mode
+    //open file trace.txt in write mode
     tptr = fopen("trace.txt", "w");
     if (tptr == NULL)
         printf("Could not open file");
+    //tptr.open("trace.txt", std::ofstream::binary);
+    //if (!tptr)
+    //    printf("Could not open file");
+    //printf("Size: %lu %lu\n", sizeof(int), sizeof(Addr));
 }
 
 template <class Impl>
@@ -1628,37 +1632,111 @@ void DefaultCommit<Impl>::dumpInst(const DynInstPtr &inst)
   auto staticInst = inst->staticInst;
   fprintf(tptr, "%lu %lu %lu  ", inst->fetchTick,
           inst->out_rob_tick - inst->fetchTick, curTick());
+  //Tick tmp = inst->fetchTick;
+  //tptr.write((char *)&tmp, sizeof(Tick));
+  //tmp = inst->out_rob_tick - inst->fetchTick;
+  //tptr.write((char *)&tmp, sizeof(Tick));
+  //tmp = curTick();
+  //tptr.write((char *)&tmp, sizeof(Tick));
   lastCompleteTick = inst->out_rob_tick - inst->fetchTick;
-  // fprintf(tptr, "%d %d %d %d\n", inst->isMacroop(), inst->isMicroop(),
-  // inst->isFirstMicroop(), inst->isLastMicroop());
-  // if (inst->isMemBarrier())
-  //  fprintf(tptr, "haha %d\n", inst->isWriteBarrier());
-  //if (inst->isFirstMicroop())
-  //  fprintf(tptr, "%s\n",
-  //          inst->macroop->disassemble(inst->pcState().instAddr()).c_str());
   fprintf(tptr, "%d %d %d %d %d %d %d %d  ", inst->opClass(),
           inst->isMicroop(), inst->isCondCtrl(), inst->isUncondCtrl(),
           inst->isSquashAfter(), inst->isSerializeAfter(),
           inst->isSerializeBefore(), inst->mispredicted());
+  //int dtmp = inst->opClass();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isMicroop();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isCondCtrl();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isUncondCtrl();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isSquashAfter();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isSerializeAfter();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isSerializeBefore();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->mispredicted();
+  //tptr.write((char *)&dtmp, sizeof(int));
   fprintf(tptr, "%d %d %d %lu  ", inst->isMemBarrier(), inst->isQuiesce(),
           inst->isNonSpeculative(), inst->pcState().instAddr() % 64);
+  //dtmp = inst->isMemBarrier();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isQuiesce();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->isNonSpeculative();
+  //tptr.write((char *)&dtmp, sizeof(int));
   fprintf(tptr, "%d ", staticInst->numSrcRegs());
-  for (int i = 0; i < staticInst->numSrcRegs(); i++)
+  //dtmp = staticInst->numSrcRegs();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  for (int i = 0; i < staticInst->numSrcRegs(); i++) {
     fprintf(tptr, "%d %hu ", staticInst->srcRegIdx(i).classValue(),
             staticInst->srcRegIdx(i).index());
-  fprintf(tptr, " ");
-  fprintf(tptr, "%d ", staticInst->numDestRegs());
-  for (int i = 0; i < staticInst->numDestRegs(); i++)
+    //dtmp = staticInst->srcRegIdx(i).classValue();
+    //tptr.write((char *)&dtmp, sizeof(int));
+    //dtmp = staticInst->srcRegIdx(i).index();
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
+  fprintf(tptr, " %d ", staticInst->numDestRegs());
+  //dtmp = staticInst->numDestRegs();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  for (int i = 0; i < staticInst->numDestRegs(); i++) {
     fprintf(tptr, "%d %hu ", staticInst->destRegIdx(i).classValue(),
             staticInst->destRegIdx(i).index());
+    //dtmp = staticInst->destRegIdx(i).classValue();
+    //tptr.write((char *)&dtmp, sizeof(int));
+    //dtmp = staticInst->destRegIdx(i).index();
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
   fprintf(tptr, " %d %lx %u %d", inst->effAddrValid(),
           inst->effAddrValid() ? inst->effAddr : 0,
           inst->effAddrValid() ? inst->effSize : 0, inst->cachedepth);
-  for (int i = 1; i < 4; i++)
+  //dtmp = inst->effAddrValid();
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //Addr atmp = inst->effAddrValid() ? inst->effAddr : 0;
+  //tptr.write((char *)&atmp, sizeof(Addr));
+  //dtmp = inst->effAddrValid() ? inst->effSize : 0;
+  //tptr.write((char *)&dtmp, sizeof(int));
+  //dtmp = inst->cachedepth;
+  //tptr.write((char *)&dtmp, sizeof(int));
+  for (int i = 1; i < 4; i++) {
     fprintf(tptr, " %d", inst->dwalkDepth[i]);
+    //dtmp = inst->dwalkDepth[i];
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
+  for (int i = 1; i < 4; i++) {
+    fprintf(tptr, " %lx", inst->dwalkAddr[i]);
+    //atmp = inst->dwalkAddr[i];
+    //tptr.write((char *)&atmp, sizeof(Addr));
+  }
+  assert(inst->dWritebacks[0] == 0 && inst->dWritebacks[3] == 0);
+  for (int i = 1; i < 3; i++) {
+    fprintf(tptr, " %d", inst->dWritebacks[i]);
+    //dtmp = inst->dWritebacks[i];
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
   fprintf(tptr, "  %lx %d", inst->instAddr(), inst->fetchdepth);
-  for (int i = 1; i < 4; i++)
+  //atmp = inst->instAddr();
+  //tptr.write((char *)&atmp, sizeof(Addr));
+  //dtmp = inst->fetchdepth;
+  //tptr.write((char *)&dtmp, sizeof(int));
+  for (int i = 1; i < 4; i++) {
     fprintf(tptr, " %d", inst->iwalkDepth[i]);
+    //dtmp = inst->iwalkDepth[i];
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
+  for (int i = 1; i < 4; i++) {
+    fprintf(tptr, " %lx", inst->iwalkAddr[i]);
+    //atmp = inst->iwalkAddr[i];
+    //tptr.write((char *)&atmp, sizeof(Addr));
+  }
+  assert(inst->iWritebacks[0] == 0 && inst->iWritebacks[3] == 0);
+  for (int i = 1; i < 3; i++) {
+    fprintf(tptr, " %d", inst->iWritebacks[i]);
+    //dtmp = inst->iWritebacks[i];
+    //tptr.write((char *)&dtmp, sizeof(int));
+  }
   assert(inst->iwalkDepth[0] == -1 && inst->dwalkDepth[0] == -1);
   fprintf(tptr, "\n");
 }

@@ -141,6 +141,8 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
     // Record cache hit level info.
     //inst->cachedepth = pkt->req->lookup_depth;
     inst->cachedepth = pkt->req->getAccessDepth();
+    for (int i = 0; i < 4; i++)
+      inst->dWritebacks[i] = pkt->req->writebacks[i];
 }
 
 template <class Impl>

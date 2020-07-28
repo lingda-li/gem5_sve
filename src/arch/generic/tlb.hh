@@ -79,7 +79,7 @@ class BaseTLB : public SimObject
          */
         virtual void finish(const Fault &fault, RequestPtr req,
                             ThreadContext *tc, Mode mode,
-                            int *depth = NULL) = 0;
+                            int *depth = NULL, Addr *addrs = NULL) = 0;
 
         /** This function is used by the page table walker to determine if it
          * should translate the a pending request or if the underlying request

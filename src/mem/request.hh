@@ -309,6 +309,8 @@ class Request
         depth = 0;
         accessDelta = 0;
         //translateDelta = 0;
+        for (int i = 0; i < 4; i++)
+          writebacks[i] = 0;
     }
 
     /**
@@ -506,6 +508,8 @@ class Request
         depth = 0;
         accessDelta = 0;
         translateDelta = 0;
+        for (int i = 0; i < 4; i++)
+          writebacks[i] = 0;
     }
 
     /**
@@ -951,6 +955,12 @@ class Request
 
     // Level of the cache hierachy where this request was responded to
     int lookup_depth = 0;
+    // Writebacks in the cache hierarchy
+    int writebacks[4] = {0, 0, 0, 0};
+    void incWriteback(int wb) {
+      assert(wb < 4);
+      writebacks[depth] += wb;
+    }
 };
 
 #endif // __MEM_REQUEST_HH__

@@ -764,7 +764,7 @@ LSQ<Impl>::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
 template<class Impl>
 void
 LSQ<Impl>::SingleDataRequest::finish(const Fault &fault, RequestPtr req,
-        ThreadContext* tc, BaseTLB::Mode mode, int* depth)
+        ThreadContext* tc, BaseTLB::Mode mode, int* depth, Addr *addrs)
 {
     _fault.push_back(fault);
     numInTranslationFragments = 0;
@@ -792,71 +792,75 @@ LSQ<Impl>::SingleDataRequest::finish(const Fault &fault, RequestPtr req,
         LSQRequest::_inst->fault = fault;
         LSQRequest::_inst->translationCompleted(true);
         if (depth) {
-          printf("F ");
+          assert(addrs);
+          //printf("F ");
           for (int i = 0; i < 4; i++) {
             _inst->dwalkDepth[i] = depth[i];
-            printf("%d ", depth[i]);
+            _inst->dwalkAddr[i] = addrs[i];
+            //printf("%d ", depth[i]);
           }
-          printf("\n");
+          //printf("\n");
         }
     }
 }
 
-template<class Impl>
-void
-LSQ<Impl>::SplitDataRequest::finish(const Fault &fault, RequestPtr req,
-        ThreadContext* tc, BaseTLB::Mode mode, int* depth)
-{
-    int i;
-    for (i = 0; i < _requests.size() && _requests[i] != req; i++);
-    assert(i < _requests.size());
-    _fault[i] = fault;
+template <class Impl>
+void LSQ<Impl>::SplitDataRequest::finish(const Fault &fault, RequestPtr req,
+                                         ThreadContext *tc, BaseTLB::Mode mode,
+                                         int *depth, Addr *addrs) {
+  int i;
+  for (i = 0; i < _requests.size() && _requests[i] != req; i++)
+    ;
+  assert(i < _requests.size());
+  _fault[i] = fault;
 
-    numInTranslationFragments--;
-    numTranslatedFragments++;
+  numInTranslationFragments--;
+  numTranslatedFragments++;
 
-    if (fault == NoFault)
-        mainReq->setFlags(req->getFlags());
+  if (fault == NoFault)
+    mainReq->setFlags(req->getFlags());
 
-    if (numTranslatedFragments == _requests.size()) {
-        if (_inst->isSquashed()) {
-            this->squashTranslation();
-        } else {
-            _inst->strictlyOrdered(mainReq->isStrictlyOrdered());
-            flags[(int)Flag::TranslationFinished] = true;
-            _inst->translationCompleted(true);
+  if (numTranslatedFragments == _requests.size()) {
+    if (_inst->isSquashed()) {
+      this->squashTranslation();
+    } else {
+      _inst->strictlyOrdered(mainReq->isStrictlyOrdered());
+      flags[(int)Flag::TranslationFinished] = true;
+      _inst->translationCompleted(true);
 
-            for (i = 0; i < _fault.size() && _fault[i] == NoFault; i++);
-            if (i > 0) {
-                _inst->physEffAddrLow = request(0)->getPaddr();
-                _inst->memReqFlags = mainReq->getFlags();
-                if (mainReq->isCondSwap()) {
-                    assert (i == _fault.size());
-                    assert(_res);
-                    mainReq->setExtraData(*_res);
-                }
-                if (i == _fault.size()) {
-                    _inst->fault = NoFault;
-                    setState(State::Request);
-                } else {
-                  _inst->fault = _fault[i];
-                  setState(State::PartialFault);
-                }
-            } else {
-                _inst->fault = _fault[0];
-                setState(State::Fault);
-            }
-            if (depth) {
-              printf("SF ");
-              for (int i = 0; i < 4; i++) {
-                _inst->dwalkDepth[i] = depth[i];
-                printf("%d ", depth[i]);
-              }
-              printf("\n");
-            }
+      for (i = 0; i < _fault.size() && _fault[i] == NoFault; i++)
+        ;
+      if (i > 0) {
+        _inst->physEffAddrLow = request(0)->getPaddr();
+        _inst->memReqFlags = mainReq->getFlags();
+        if (mainReq->isCondSwap()) {
+          assert(i == _fault.size());
+          assert(_res);
+          mainReq->setExtraData(*_res);
         }
-
+        if (i == _fault.size()) {
+          _inst->fault = NoFault;
+          setState(State::Request);
+        } else {
+          _inst->fault = _fault[i];
+          setState(State::PartialFault);
+        }
+      } else {
+        _inst->fault = _fault[0];
+        setState(State::Fault);
+      }
+      if (depth) {
+        assert(addrs);
+        // printf("SF ");
+        for (int i = 0; i < 4; i++) {
+          _inst->dwalkDepth[i] = depth[i];
+          _inst->dwalkAddr[i] = addrs[i];
+          // printf("%d ", depth[i]);
+        }
+        // printf("\n");
+      }
     }
+  }
 }
 
 template<class Impl>

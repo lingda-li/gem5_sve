@@ -101,10 +101,10 @@ class DefaultFetch
 
         void
         finish(const Fault &fault, RequestPtr req, ThreadContext *tc,
-               BaseTLB::Mode mode, int *depth)
+               BaseTLB::Mode mode, int *depth, Addr *addrs)
         {
             assert(mode == BaseTLB::Execute);
-            fetch->finishTranslation(fault, req, depth);
+            fetch->finishTranslation(fault, req, depth, addrs);
             delete this;
         }
     };
@@ -141,7 +141,7 @@ class DefaultFetch
             assert(fetch->numInst < fetch->fetchWidth);
             auto req_temp = req;
             req = nullptr;
-            fetch->finishTranslation(fault, req_temp, NULL);
+            fetch->finishTranslation(fault, req_temp, NULL, NULL);
         }
 
         const char *description() const
@@ -299,7 +299,7 @@ class DefaultFetch
      */
     bool fetchCacheLine(Addr vaddr, ThreadID tid, Addr pc);
     void finishTranslation(const Fault &fault, RequestPtr mem_req,
-                           int *wdepth);
+                           int *wdepth, Addr *addrs);
 
 
     /** Check if an interrupt is pending and that we need to handle
@@ -582,6 +582,8 @@ class DefaultFetch
     int depth = 0;
     // Last itlb table walking depth.
     int walkDepth[4] = {-1, -1, -1, -1};
+    Addr walkAddr[4] = {0, 0, 0, 0};
+    int writebacks[4] = {0, 0, 0, 0};
 };
 
 #endif //__CPU_O3_FETCH_HH__

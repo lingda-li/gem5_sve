@@ -1097,7 +1097,8 @@ TLB::translateFs(RequestPtr req, ThreadContext *tc, Mode mode,
     TlbEntry mergeTe;
     Fault fault = getResultTe(&te, req, tc, mode, translation, timing,
                               functional, &mergeTe);
-    *tep = te;
+    if (tep)
+      *tep = te;
     // only proceed if we have a valid table entry
     if ((te == NULL) && (fault == NoFault)) delay = true;
 
@@ -1177,7 +1178,7 @@ TLB::translateAtomic(RequestPtr req, ThreadContext *tc, Mode mode,
       return NoFault;
     }
     if (FullSystem)
-        fault = translateFs(req, tc, mode, NULL, delay, false, tranType);
+        fault = translateFs(req, tc, mode, NULL, delay, false, tranType, NULL);
     else
         fault = translateSe(req, tc, mode, NULL, delay, false);
     assert(!delay);
@@ -1259,13 +1260,16 @@ TLB::translateComplete(RequestPtr req, ThreadContext *tc,
     if (translation && (callFromS2 || !stage2Req || req->hasPaddr() || fault != NoFault)) {
         if (!delay) {
             int walkDepth[4];
+            Addr walkAddr[4];
             if (*te) {
                 assert(req->hasPaddr());
                 for (int i = 0; i < 4; i++) {
                   walkDepth[i] = (*te)->walkDepth[i];
+                  walkAddr[i] = (*te)->walkAddr[i];
                   (*te)->walkDepth[i] = -1;
+                  (*te)->walkAddr[i] = 0;
                 }
-                translation->finish(fault, req, tc, mode, walkDepth);
+                translation->finish(fault, req, tc, mode, walkDepth, walkAddr);
             } else
                 translation->finish(fault, req, tc, mode);
         } else

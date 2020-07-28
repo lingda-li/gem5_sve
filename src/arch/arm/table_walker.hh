@@ -929,9 +929,9 @@ class TableWalker : public MemObject
     void doL2DescriptorWrapper();
     EventFunctionWrapper doL2DescEvent;
 
-    void doLongDescriptor(int *walkDepth);
+    void doLongDescriptor(int *walkDepth, Addr *walkAddr);
     void doLongDescriptor() {
-      doLongDescriptor(NULL);
+      doLongDescriptor(NULL, NULL);
     }
 
     void doL0LongDescriptorWrapper();

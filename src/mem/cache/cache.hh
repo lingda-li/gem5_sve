@@ -374,7 +374,7 @@ class Cache : public BaseCache
     /**
      * Insert writebacks into the write buffer
      */
-    void doWritebacks(PacketList& writebacks, Tick forward_time);
+    int doWritebacks(PacketList& writebacks, Tick forward_time);
 
     /**
      * Send writebacks down the memory hierarchy in atomic mode

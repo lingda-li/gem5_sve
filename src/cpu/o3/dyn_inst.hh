@@ -145,6 +145,10 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     int fetchdepth = 0;
     int iwalkDepth[4] = {-1, -1, -1, -1};
     int dwalkDepth[4] = {-1, -1, -1, -1};
+    Addr iwalkAddr[4] = {0, 0, 0, 0};
+    Addr dwalkAddr[4] = {0, 0, 0, 0};
+    int iWritebacks[4] = {0, 0, 0, 0};
+    int dWritebacks[4] = {0, 0, 0, 0};
 
     /** Reads a misc. register, including any side-effects the read
      * might have as defined by the architecture.

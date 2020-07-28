@@ -528,9 +528,10 @@ Cache::maintainClusivity(bool from_cache, CacheBlk *blk)
     }
 }
 
-void
+int
 Cache::doWritebacks(PacketList& writebacks, Tick forward_time)
 {
+    int wb = 0;
     while (!writebacks.empty()) {
         PacketPtr wbPkt = writebacks.front();
         // We use forwardLatency here because we are copying writebacks to
@@ -558,6 +559,7 @@ Cache::doWritebacks(PacketList& writebacks, Tick forward_time)
                 // address in the snoop filter below.
                 wbPkt->setBlockCached();
                 allocateWriteBuffer(wbPkt, forward_time);
+                wb++;
             }
         } else {
             // If the block is not cached above, send packet below. Both
@@ -565,9 +567,11 @@ Cache::doWritebacks(PacketList& writebacks, Tick forward_time)
             // reset the bit corresponding to this address in the snoop filter
             // below.
             allocateWriteBuffer(wbPkt, forward_time);
+            wb++;
         }
         writebacks.pop_front();
     }
+    return wb;
 }
 
 void
@@ -657,21 +661,25 @@ Cache::promoteWholeLineWrites(PacketPtr pkt)
 bool
 Cache::recvTimingReq(PacketPtr pkt)
 {
-    //if (pkt->needsResponse()) {
-    //  // std::cout << "haha " << pkt->print() << "\n";
-    //  if (pkt->isLLSC() && pkt->isWrite()) {
-    //    functionalAccess(pkt, true);
-    //    pkt->req->setExtraData(1);
-    //  } else if (pkt->isClean()) {
-    //    pkt->makeTimingResponse();
-    //  } else
-    //    functionalAccess(pkt, true);
-    //  // pkt->makeTimingResponse();
-    //  Tick request_time = clockEdge(lookupLatency) + pkt->headerDelay;
-    //  pkt->headerDelay = pkt->payloadDelay = 0;
-    //  cpuSidePort->schedTimingResp(pkt, request_time, true);
+    //if (name().find("icache") != string::npos ||
+    //    name().find("walker_cache") != string::npos) {
+    //  //std::cout << name() << "\n";
+    //  if (pkt->needsResponse()) {
+    //    // std::cout << "haha " << pkt->print() << "\n";
+    //    if (pkt->isLLSC() && pkt->isWrite()) {
+    //      functionalAccess(pkt, true);
+    //      pkt->req->setExtraData(1);
+    //    } else if (pkt->isClean()) {
+    //      pkt->makeTimingResponse();
+    //    } else
+    //      functionalAccess(pkt, true);
+    //    // pkt->makeTimingResponse();
+    //    Tick request_time = clockEdge(lookupLatency) + pkt->headerDelay;
+    //    pkt->headerDelay = pkt->payloadDelay = 0;
+    //    cpuSidePort->schedTimingResp(pkt, request_time, true);
+    //  }
+    //  return true;
     //}
-    //return true;
     DPRINTF(CacheTags, "%s tags:\n%s\n", __func__, tags->print());
 
     assert(pkt->isRequest());
@@ -771,7 +779,8 @@ Cache::recvTimingReq(PacketPtr pkt)
 
         // copy writebacks to write buffer here to ensure they logically
         // proceed anything happening below
-        doWritebacks(writebacks, forward_time);
+        int wb = doWritebacks(writebacks, forward_time);
+        pkt->req->incWriteback(wb);
     }
 
     // Here we charge the headerDelay that takes into account the latencies

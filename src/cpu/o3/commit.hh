@@ -44,6 +44,7 @@
 #ifndef __CPU_O3_COMMIT_HH__
 #define __CPU_O3_COMMIT_HH__
 
+#include <fstream>
 #include <queue>
 
 #include "base/statistics.hh"
@@ -231,6 +232,7 @@ class DefaultCommit
     void generateTCEvent(ThreadID tid);
 
     FILE *tptr;
+    //std::ofstream tptr;
 
     /** Dump an instruction. */
     Tick lastFetchTick;
